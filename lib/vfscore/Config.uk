@@ -9,6 +9,18 @@ config LIBVFSCORE
 if LIBVFSCORE
 menu "vfscore: Configuration"
 
+config LIBCPIO
+    bool "cpio: general cpio archive extraction"
+    default n
+
+config LIBINITRAMFS
+    bool "initramfs: extract the given cpio file to /"
+    default n
+    select LIBRAMFS
+    select LIBUKLIBPARAM
+    select LIBVFSCORE_AUTOMOUNT_ROOTFS
+    select LIBCPIO
+
 config LIBVFSCORE_PIPE_SIZE_ORDER
 	int "Pipe size order"
 	default 16
