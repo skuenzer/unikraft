@@ -41,6 +41,7 @@
 #include <vfscore/mount.h>
 #include <vfscore/vnode.h>
 #include <uk/wait.h>
+#include <uk/syscall.h>
 #include <sys/ioctl.h>
 
 /* We use the default size in Linux kernel */
@@ -536,7 +537,7 @@ ERR_EXIT:
 	return ret;
 }
 
-int pipe(int pipefd[2])
+UK_SYSCALL_R_DEFINE(int, pipe, int*, pipefd)
 {
 	int ret = 0;
 	int r_fd, w_fd;
