@@ -356,6 +356,6 @@ default:
 
 int prctl(int option __unused, ...)
 {
-	WARN_STUBBED();
+	UK_WARN_STUBBED();
 	return 0;
 }
