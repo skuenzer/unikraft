@@ -1,4 +1,38 @@
-config LIBRAMFS
+menuconfig LIBRAMFS
 	bool "ramfs: simple RAM file system"
 	default n
 	depends on LIBVFSCORE
+
+if LIBRAMFS
+	choice
+	prompt "Block size"
+	default LIBRAMFS_BLKSIZE_4K
+
+	config LIBRAMFS_BLKSIZE_4K
+	bool "4K"
+
+	config LIBRAMFS_BLKSIZE_8K
+	bool "8K"
+
+	config LIBRAMFS_BLKSIZE_16K
+	bool "16K"
+
+	config LIBRAMFS_BLKSIZE_32K
+	bool "32K"
+
+	config LIBRAMFS_BLKSIZE_64K
+	bool "64K"
+
+	config LIBRAMFS_BLKSIZE_128K
+	bool "128K"
+
+	config LIBRAMFS_BLKSIZE_256K
+	bool "256K"
+
+	config LIBRAMFS_BLKSIZE_512K
+	bool "512K"
+
+	config LIBRAMFS_BLKSIZE_1M
+	bool "1M"
+	endchoice
+endif

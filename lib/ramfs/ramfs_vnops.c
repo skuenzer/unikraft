@@ -35,6 +35,7 @@
  */
 #define _GNU_SOURCE
 
+#include <uk/config.h>
 #include <uk/essentials.h>
 #include <sys/stat.h>
 #include <dirent.h>
@@ -57,6 +58,38 @@
 
 static struct uk_mutex ramfs_lock = UK_MUTEX_INITIALIZER(ramfs_lock);
 static uint64_t inode_count = 1; /* inode 0 is reserved to root */
+
+#if CONFIG_LIBRAMFS_BLKSIZE_4K
+#define RAMFS_BLKSIZE 4096
+#endif
+#if CONFIG_LIBRAMFS_BLKSIZE_8K
+#define RAMFS_BLKSIZE 8192
+#endif
+#if CONFIG_LIBRAMFS_BLKSIZE_16K
+#define RAMFS_BLKSIZE 16384
+#endif
+#if CONFIG_LIBRAMFS_BLKSIZE_32K
+#define RAMFS_BLKSIZE 32768
+#endif
+#if CONFIG_LIBRAMFS_BLKSIZE_64K
+#define RAMFS_BLKSIZE 65536
+#endif
+#if CONFIG_LIBRAMFS_BLKSIZE_128K
+#define RAMFS_BLKSIZE 131072
+#endif
+#if CONFIG_LIBRAMFS_BLKSIZE_256K
+#define RAMFS_BLKSIZE 262144
+#endif
+#if CONFIG_LIBRAMFS_BLKSIZE_512K
+#define RAMFS_BLKSIZE 524288
+#endif
+#if CONFIG_LIBRAMFS_BLKSIZE_1M
+#define RAMFS_BLKSIZE 1048576
+#endif
+
+#define bytes2blks(v) DIV_ROUND_UP((v), RAMFS_BLKSIZE)
+#define blks2bytes(v) ((v) * RAMFS_BLKSIZE)
+#define round_blkup(v) ALIGN_UP((v), RAMFS_BLKSIZE)
 
 static void
 set_times_to_now(struct timespec *time1, struct timespec *time2,
@@ -352,14 +385,16 @@ ramfs_truncate(struct vnode *vp, off_t length)
 			np->rn_buf = NULL;
 			np->rn_bufsize = 0;
 		}
-	} else if ((size_t) length > np->rn_bufsize) {
+	} else if (round_blkup((size_t) length) > np->rn_bufsize) {
 		/* TODO: this could use a page level allocator */
-		new_size = round_pgup(length);
-		new_buf = malloc(new_size);
+		new_size = round_blkup(length);
+		new_buf = uk_palloc(uk_alloc_get_default(), new_size >> __PAGE_SHIFT);
 		if (!new_buf)
 			return EIO;
 		if (np->rn_size != 0) {
 			memcpy(new_buf, np->rn_buf, vp->v_size);
+			memset((void *)((uintptr_t) new_buf + vp->v_size),
+				       0, new_size - vp->v_size);
 			if (np->rn_owns_buf)
 				free(np->rn_buf);
 		}
@@ -468,14 +503,17 @@ ramfs_write(struct vnode *vp, struct uio *uio, int ioflag)
 		off_t end_pos = uio->uio_offset + uio->uio_resid;
 
 		if (end_pos > (off_t) np->rn_bufsize) {
+			//uk_pr_err("Increase file (new alloc)\n");
 			// XXX: this could use a page level allocator
-			size_t new_size = round_pgup(end_pos);
-			void *new_buf = calloc(1, new_size);
-
+			size_t new_size = round_blkup(end_pos) + RAMFS_BLKSIZE;
+			void  *new_buf = uk_palloc(uk_alloc_get_default(),
+						   new_size >> __PAGE_SHIFT);
 			if (!new_buf)
 				return EIO;
 			if (np->rn_size != 0) {
 				memcpy(new_buf, np->rn_buf, vp->v_size);
+				memset((void *)((uintptr_t) new_buf + vp->v_size),
+				       0, new_size - vp->v_size);
 				if (np->rn_owns_buf)
 					free(np->rn_buf);
 			}
