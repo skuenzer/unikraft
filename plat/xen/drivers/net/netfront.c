@@ -713,6 +713,7 @@ static void netfront_info_get(struct uk_netdev *n,
 	dev_info->max_mtu = nfdev->mtu;
 	dev_info->nb_encap_tx = 0;
 	dev_info->nb_encap_rx = 0;
+	dev_info->features = UK_FEATURE_RXQ_INTR_AVAILABLE;
 }
 
 static const void *netfront_einfo_get(struct uk_netdev *n,
