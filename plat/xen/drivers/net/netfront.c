@@ -237,8 +237,11 @@ static int netfront_rxq_dequeue(struct uk_netdev_rx_queue *rxq,
 	rmb(); /* Ensure we see queued responses up to 'rp'. */
 	cons = rxq->ring.rsp_cons;
 	/* No new descriptor since last dequeue operation */
-	if (cons == prod)
+	if (cons == prod) {
+		*netbuf = NULL;
 		goto out;
+	}
+
 
 	/* get response */
 	rx_rsp = RING_GET_RESPONSE(&rxq->ring, cons);
