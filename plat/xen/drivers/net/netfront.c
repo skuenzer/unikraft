@@ -522,7 +522,7 @@ static struct uk_netdev_rx_queue *netfront_rxq_setup(struct uk_netdev *n,
 static int netfront_rxtx_alloc(struct netfront_dev *nfdev,
 		const struct uk_netdev_conf *conf)
 {
-	int rc = 0;
+	int rc = 0, i;
 
 	if (conf->nb_tx_queues != conf->nb_rx_queues) {
 		uk_pr_err("Different number of queues not supported\n");
@@ -541,6 +541,9 @@ static int netfront_rxtx_alloc(struct netfront_dev *nfdev,
 		goto err_free_txrx;
 	}
 
+	for (i = 0; i < nfdev->max_queue_pairs; i++)
+		nfdev->txqs[i].ring_size = NET_TX_RING_SIZE;
+
 	nfdev->rxqs = uk_calloc(drv_allocator,
 		nfdev->max_queue_pairs, sizeof(*nfdev->rxqs));
 	if (unlikely(!nfdev->rxqs)) {
@@ -548,6 +551,8 @@ static int netfront_rxtx_alloc(struct netfront_dev *nfdev,
 		rc = -ENOMEM;
 		goto err_free_txrx;
 	}
+	for (i = 0; i < nfdev->max_queue_pairs; i++)
+		nfdev->rxqs[i].ring_size = NET_RX_RING_SIZE;
 
 	return rc;
 
@@ -611,7 +616,7 @@ static int netfront_txq_info_get(struct uk_netdev *n,
 	UK_ASSERT(qinfo != NULL);
 
 	nfdev = to_netfront_dev(n);
-	if (unlikely(queue_id >= nfdev->txqs_num)) {
+	if (unlikely(queue_id >= nfdev->max_queue_pairs)) {
 		uk_pr_err("Invalid queue_id %"__PRIu16"\n", queue_id);
 		rc = -EINVAL;
 		goto exit;
@@ -638,7 +643,7 @@ static int netfront_rxq_info_get(struct uk_netdev *n,
 	UK_ASSERT(qinfo != NULL);
 
 	nfdev = to_netfront_dev(n);
-	if (unlikely(queue_id >= nfdev->rxqs_num)) {
+	if (unlikely(queue_id >= nfdev->max_queue_pairs)) {
 		uk_pr_err("Invalid queue id: %"__PRIu16"\n", queue_id);
 		rc = -EINVAL;
 		goto exit;
