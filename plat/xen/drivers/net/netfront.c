@@ -120,7 +120,7 @@ static int netfront_add_dev(struct xenbus_device *xendev)
 	}
 
 	nfdev->xendev = xendev;
-	nfdev->mtu = ETH_PKT_PAYLOAD_LEN;
+	nfdev->mtu = UK_ETH_PAYLOAD_MAXLEN;
 
 	/* Xenbus initialization */
 	rc = netfront_xb_init(nfdev, drv_allocator);
