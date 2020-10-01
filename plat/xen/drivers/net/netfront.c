@@ -251,8 +251,8 @@ static int netfront_rxq_dequeue(struct uk_netdev_rx_queue *rxq,
 
 	buf = rxq->netbuf[id];
 	len = (uint16_t) rx_rsp->status;
-	if (len > ETH_PKT_LEN)
-		len = ETH_PKT_LEN;
+	if (len > UK_ETH_FRAME_MAXLEN)
+		len = UK_ETH_FRAME_MAXLEN;
 	buf->len = len;
 
 	*netbuf = buf;
