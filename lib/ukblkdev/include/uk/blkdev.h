@@ -501,7 +501,7 @@ int uk_blkdev_stop(struct uk_blkdev *dev);
  *	- 0: Success
  *	- (<0): on error returned by driver
  */
-int uk_blkdev_queue_release(struct uk_blkdev *dev, uint16_t queue_id);
+int uk_blkdev_queue_unconfigure(struct uk_blkdev *dev, uint16_t queue_id);
 
 /**
  * Close a stopped Unikraft block device.
