@@ -92,6 +92,7 @@ menu "Xenbus Drivers"
 
 config XEN_NETFRONT
 	bool "Xenbus Netfront Driver"
+	default y if LIBUKNETDEV
 	default n
 	depends on LIBUKNETDEV
 	help
