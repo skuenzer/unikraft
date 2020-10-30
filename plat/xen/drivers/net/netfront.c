@@ -627,7 +627,7 @@ static int netfront_txq_info_get(struct uk_netdev *n,
 	txq = &nfdev->txqs[queue_id];
 	qinfo->nb_min = txq->ring_size;
 	qinfo->nb_max = txq->ring_size;
-	qinfo->nb_align = PAGE_SIZE;
+	qinfo->nb_align = 1;
 	qinfo->nb_is_power_of_two = 1;
 
 exit:
@@ -713,6 +713,7 @@ static void netfront_info_get(struct uk_netdev *n,
 	dev_info->max_mtu = nfdev->mtu;
 	dev_info->nb_encap_tx = 0;
 	dev_info->nb_encap_rx = 0;
+	dev_info->ioalign = PAGE_SIZE;
 	dev_info->features = UK_FEATURE_RXQ_INTR_AVAILABLE;
 }
 
