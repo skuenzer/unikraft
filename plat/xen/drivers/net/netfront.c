@@ -191,7 +191,7 @@ static int netfront_rxq_enqueue(struct uk_netdev_rx_queue *rxq,
 	int notify;
 
 	/* buffer must be page aligned */
-	UK_ASSERT(((unsigned long) netbuf->data & ~PAGE_MASK) == 0);
+	UK_ASSERT(((unsigned long) netbuf->buf & ~PAGE_MASK) == 0);
 
 	if (RING_FULL(&rxq->ring)) {
 		uk_pr_debug("rx queue is full\n");
@@ -210,7 +210,7 @@ static int netfront_rxq_enqueue(struct uk_netdev_rx_queue *rxq,
 	nfdev = rxq->netfront_dev;
 	rxq->gref[id] = rx_req->gref =
 		gnttab_grant_access(nfdev->xendev->otherend_id,
-			virt_to_mfn(netbuf->data), 0);
+			virt_to_mfn(netbuf->buf), 0);
 	UK_ASSERT(rx_req->gref != GRANT_INVALID_REF);
 
 	wmb(); /* Ensure backend sees requests */
@@ -255,10 +255,19 @@ static int netfront_rxq_dequeue(struct uk_netdev_rx_queue *rxq,
 	gnttab_end_access(rxq->gref[id]);
 
 	buf = rxq->netbuf[id];
-	len = (uint16_t) rx_rsp->status;
-	if (len > UK_ETH_FRAME_MAXLEN)
-		len = UK_ETH_FRAME_MAXLEN;
-	buf->len = len;
+	if (unlikely(rx_rsp->status < 0)) {
+		uk_pr_err("rxq %p: Receive error %d!\n", rxq, rx_rsp->status);
+		buf->len = 0;
+	} else {
+		len = (uint16_t) rx_rsp->status;
+		if (len > UK_ETH_FRAME_MAXLEN)
+			len = UK_ETH_FRAME_MAXLEN;
+
+		buf->data = (void *)((__uptr) buf->buf + rx_rsp->offset);
+		buf->len = len;
+		UK_ASSERT(buf->data >= buf->buf
+			  && buf->data < buf->buf + buf->buflen);
+	}
 
 	*netbuf = buf;
 
