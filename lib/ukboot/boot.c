@@ -40,6 +40,8 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <errno.h>
+#include <inttypes.h>
+#include <unistd.h>
 
 #if CONFIG_LIBUKBOOT_INITBBUDDY
 #include <uk/allocbbuddy.h>
@@ -69,6 +71,105 @@
 #include <uk/sp.h>
 #endif
 #include "banner.h"
+
+#if CONFIG_LIBUKALLOC_IFSTATS
+static void _pr_alloc_stats(struct uk_alloc_stats *s)
+{
+	printf(" last_alloc_size:%12"__PRIsz" B\n", /* last satisfied allocation size */
+	       s->last_alloc_size);
+	printf(" max_alloc_size: %12"__PRIsz" B\n", /* biggest satisfied allocation size */
+	       s->max_alloc_size);
+	printf(" min_alloc_size: %12"__PRIsz" B\n", /* smallest satisfied allocation size */
+	       s->min_alloc_size);
+	printf(" tot_nb_allocs:  %12"PRIu64"\n", /* total number of satisfied allocations */
+	       s->tot_nb_allocs);
+	printf(" tot_nb_frees:   %12"PRIu64"\n", /* total number of satisfied allocations */
+	       s->tot_nb_frees);
+	printf(" cur_nb_allocs:  %12"PRId64"\n", /* current number of active allocations */
+	       s->cur_nb_allocs);
+	printf(" max_nb_allocs:  %12"PRId64"\n", /* maximum number of active allocations */
+	       s->max_nb_allocs);
+	printf(" max_mem_use:    %12"__PRIssz" B\n", /* maximum amount of memory used by allocations */
+	       s->max_mem_use);
+	printf(" cur_mem_use:    %12"__PRIssz" B\n", /* current used memory by allocations */
+	       s->cur_mem_use);
+	printf(" nb_enomem:      %12"PRIu64"\n", /* number of times failing allocation requests */
+	       s->nb_enomem);
+}
+
+void print_alloc_stats()
+{
+	struct uk_alloc *a;
+	struct uk_alloc_stats s;
+	ssize_t max_alloc, free_mem;
+	size_t total_free_mem = 0;
+
+	uk_alloc_foreach(a) {
+		uk_alloc_stats(a, &s);
+		printf("-------------------------------\n");
+		printf("Allocator %p %c\n", a,
+		       (a == uk_alloc_get_default()) ? '*' : ' ');
+		printf("-------------------------------\n");
+
+		_pr_alloc_stats(&s);
+
+		max_alloc = uk_alloc_maxalloc(a);
+		if (max_alloc < 0)
+			printf(" max_pos_alloc:         <n/a>\n");
+		else
+			printf(" max_pos_alloc:  %12"__PRIssz" B\n", max_alloc);
+
+		free_mem = uk_alloc_availmem(a);
+		if (free_mem < 0) {
+			printf(" free_mem:              <n/a>\n");
+		} else {
+			printf(" free_mem:       %12"__PRIssz" B\n", free_mem);
+			total_free_mem += free_mem;
+		}
+		printf("===============================\n\n");
+	}
+
+#if CONFIG_LIBUKALLOC_IFSTATS_PERLIB
+	struct uk_alloc_libstats_entry *l;
+	uk_alloc_foreach_libstats(l) {
+		uk_alloc_stats(l->a, &s);
+		if (s.tot_nb_allocs > 0 || s.nb_enomem > 0) {
+			printf("- - - - - - - - - - - - - - - -\n");
+			printf("Library stats: %s (%p)\n", l->libname, l->a);
+			printf("- - - - - - - - - - - - - - - -\n");
+			_pr_alloc_stats(&s);
+			printf("-------------------------------\n");
+		}
+	}
+#endif
+
+	printf("===============================\n");
+	printf("GLOBAL\n");
+	printf("-------------------------------\n");
+#if CONFIG_LIBUKALLOC_IFSTATS_GLOBAL
+	uk_alloc_stats_global(&s);
+	_pr_alloc_stats(&s);
+#endif
+	printf(" tot_free_mem:   %12"__PRIsz" B\n",
+	       total_free_mem);
+	printf("===============================\n\n");
+}
+
+static void stats_thread_func(void *arg __unused)
+{
+	for (;;) {
+		print_alloc_stats();
+		sleep(10);
+	}
+}
+#else
+static void free_thread_func(void *arg __unused)
+{
+	sleep(5);
+	printf(" tot_free_mem:   %12"__PRIsz" KiB\n",
+	       uk_alloc_availmem_total() / 1024);
+}
+#endif
 
 int main(int argc, char *argv[]) __weak;
 
@@ -106,6 +207,12 @@ static void main_thread_func(void *arg)
 
 	print_banner(stdout);
 	fflush(stdout);
+
+#if CONFIG_LIBUKALLOC_IFSTATS
+	uk_thread_create("stats", stats_thread_func, NULL);
+#else
+	uk_thread_create("free", free_thread_func, NULL);
+#endif
 
 	/*
 	 * Application
@@ -150,6 +257,10 @@ static void main_thread_func(void *arg)
 	ret = (ret != 0) ? UKPLAT_CRASH : UKPLAT_HALT;
 
 exit:
+#if CONFIG_LIBUKALLOC_IFSTATS
+	/* Allocator statistics */
+	print_alloc_stats();
+#endif
 	ukplat_terminate(ret); /* does not return */
 }
 
