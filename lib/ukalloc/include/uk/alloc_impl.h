@@ -141,6 +141,18 @@ static inline void _uk_alloc_stats_count_free(struct uk_alloc_stats *stats,
 	uk_preempt_enable();
 }
 
+#if CONFIG_LIBUKALLOC_IFSTATS_GLOBAL
+#define _uk_alloc_stats_global_count_alloc(ptr, size) \
+	_uk_alloc_stats_count_alloc(&_uk_alloc_stats_global, (ptr), (size))
+#define _uk_alloc_stats_global_count_free(ptr, freed_size) \
+	_uk_alloc_stats_count_free(&_uk_alloc_stats_global, (ptr), (freed_size))
+#else /* !CONFIG_LIBUKALLOC_IFSTATS_GLOBAL */
+#define _uk_alloc_stats_global_count_alloc(ptr, size) \
+	do {} while (0)
+#define _uk_alloc_stats_global_count_free(ptr, freed_size) \
+	do {} while (0)
+#endif /* !CONFIG_LIBUKALLOC_IFSTATS_GLOBAL */
+
 /*
  * The following macros should be used to instrument an allocator for
  * statistics:
@@ -150,6 +162,7 @@ static inline void _uk_alloc_stats_count_free(struct uk_alloc_stats *stats,
 	do {								\
 		_uk_alloc_stats_count_alloc(&((a)->_stats),		\
 					    (ptr), (size));		\
+		_uk_alloc_stats_global_count_alloc((ptr), (size));	\
 	} while (0)
 #define uk_alloc_stats_count_palloc(a, ptr, num_pages)			\
 	uk_alloc_stats_count_alloc((a), (ptr),				\
@@ -166,6 +179,7 @@ static inline void _uk_alloc_stats_count_free(struct uk_alloc_stats *stats,
 	do {								\
 		_uk_alloc_stats_count_free(&((a)->_stats),		\
 					   (ptr), (freed_size));	\
+		_uk_alloc_stats_global_count_free((ptr), (freed_size));	\
 	} while (0)
 #define uk_alloc_stats_count_pfree(a, ptr, num_pages)			\
 	uk_alloc_stats_count_free((a), (ptr),				\
