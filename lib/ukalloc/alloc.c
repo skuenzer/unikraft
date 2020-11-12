@@ -271,6 +271,32 @@ int uk_posix_memalign_ifpages(struct uk_alloc *a,
 	return 0;
 }
 
+ssize_t uk_alloc_maxalloc_ifpages(struct uk_alloc *a)
+{
+	long num_pages;
+
+	UK_ASSERT(a);
+
+	num_pages = uk_alloc_pmaxalloc(a);
+	if (num_pages < 0)
+		return (ssize_t) num_pages;
+
+	return ((ssize_t) num_pages) << __PAGE_SHIFT;
+}
+
+ssize_t uk_alloc_availmem_ifpages(struct uk_alloc *a)
+{
+	long num_pages;
+
+	UK_ASSERT(a);
+
+	num_pages = uk_alloc_pavail(a);
+	if (num_pages < 0)
+		return (ssize_t) num_pages;
+
+	return ((ssize_t) num_pages) << __PAGE_SHIFT;
+}
+
 #if CONFIG_LIBUKALLOC_IFMALLOC
 
 struct metadata_ifmalloc {
@@ -489,4 +515,30 @@ void *uk_memalign_compat(struct uk_alloc *a, size_t align, size_t size)
 		return NULL;
 
 	return ptr;
+}
+
+long uk_alloc_pmaxalloc_compat(struct uk_alloc *a)
+{
+	ssize_t mem;
+
+	UK_ASSERT(a);
+
+	mem = uk_alloc_maxalloc(a);
+	if (mem < 0)
+		return (long) mem;
+
+	return (long) (mem >> __PAGE_SHIFT);
+}
+
+long uk_alloc_pavail_compat(struct uk_alloc *a)
+{
+	ssize_t mem;
+
+	UK_ASSERT(a);
+
+	mem = uk_alloc_availmem(a);
+	if (mem < 0)
+		return (long) mem;
+
+	return (long) (mem >> __PAGE_SHIFT);
 }
