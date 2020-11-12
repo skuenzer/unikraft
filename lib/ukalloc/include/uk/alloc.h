@@ -279,6 +279,10 @@ static inline long uk_alloc_pavail(struct uk_alloc *a)
 	return a->pavail(a);
 }
 
+size_t uk_alloc_availmem_total(void);
+
+unsigned long uk_alloc_pavail_total(void);
+
 #ifdef __cplusplus
 }
 #endif
