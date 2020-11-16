@@ -39,6 +39,7 @@
 #include <uk/arch/atomic.h>
 #include <uk/arch/lcpu.h>
 #include <uk/config.h>
+#include <stdbool.h>
 
 #ifdef CONFIG_LIBUKDEBUG
 #include <uk/assert.h>
@@ -57,6 +58,27 @@ extern "C" {
 #endif /* CONFIG_LIBUKDEBUG */
 
 /**
+ * Define a set of refcount operations. The library which uses the refcount
+ * could make a choice to use a weaker memory model by defining a library
+ * specific memory model. By default, refcount will use stronger memory model.
+ */
+#ifdef CONFIG_RELAXED_ATOMIC
+#define refcnt_store(x, y) __atomic_store_n(x, y, __ATOMIC_RELAXED)
+#define refcnt_load(x) __atomic_load_n(x, __ATOMIC_RELAXED)
+#define refcnt_inc(x) __atomic_fetch_add(x, 1, __ATOMIC_RELAXED)
+#define refcnt_dec(x) __atomic_fetch_add(x, -1, __ATOMIC_RELAXED)
+#define refcnt_cmp_xchg_sync(x,y,z) \
+	__atomic_compare_exchange_n(x, &y, z, true, __ATOMIC_RELAXED,\
+				    __ATOMIC_RELAXED)
+#else
+#define refcnt_store(x, y) ukarch_store_n(x, y)
+#define refcnt_load(x) ukarch_load_n(x)
+#define refcnt_inc(x) ukarch_inc(x)
+#define refcnt_dec(x) ukarch_fetch_add(x, -1)
+#define refcnt_cmp_xchg_sync(x,y,z) ukarch_compare_exchange_sync(x,y,z)
+#endif
+
+/**
  * Initialize the atomic reference.
  *
  * @param ref:
@@ -68,7 +90,7 @@ static inline void uk_refcount_init(__atomic *ref, __u32 value)
 {
 	__refcnt_assert(ref != __NULL);
 
-	ukarch_store_n(&ref->counter, value);
+	refcnt_store(&ref->counter, value);
 }
 
 /**
@@ -80,7 +102,7 @@ static inline void uk_refcount_acquire(__atomic *ref)
 {
 	__refcnt_assert((ref != __NULL) && (ref->counter < __U32_MAX));
 
-	ukarch_inc(&ref->counter);
+	refcnt_inc(&ref->counter);
 }
 
 /**
@@ -100,7 +122,7 @@ static inline int uk_refcount_release(__atomic *ref)
 	/* Compiler Fence */
 	barrier();
 
-	old = ukarch_fetch_add(&ref->counter, -1);
+	old = refcnt_dec(&ref->counter);
 	__refcnt_assert(old > 0);
 	if (old > 1)
 		return 0;
@@ -133,7 +155,7 @@ static inline int uk_refcount_acquire_if_not_zero(__atomic *ref)
 	for (;;) {
 		if (old == 0)
 			return 0;
-		if (ukarch_compare_exchange_sync(&ref->counter, old, (old + 1))
+		if (refcnt_cmp_xchg_sync(&ref->counter, old, (old + 1))
 				== (old + 1))
 			return 1;
 	}
@@ -149,7 +171,7 @@ static inline __u32 uk_refcount_read(const __atomic *ref)
 {
 	__refcnt_assert(ref != __NULL);
 
-	return ukarch_load_n(&ref->counter);
+	return refcnt_load(&ref->counter);
 }
 
 
@@ -171,7 +193,7 @@ static inline int uk_refcount_release_if_not_last(__atomic *ref)
 	for (;;) {
 		if (old == 1)
 			return 0;
-		if (ukarch_compare_exchange_sync(&ref->counter, old, (old - 1))
+		if (refcnt_cmp_xchg_sync(&ref->counter, old, (old - 1))
 				== (old - 1))
 			return 1;
 	}
