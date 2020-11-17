@@ -53,10 +53,10 @@ static inline struct uk_alloc *_uk_alloc_get_actual_default(void)
 }
 
 #define WATCH_STATS_START(p)						\
-	ssize_t _before_mem_use;					\
-	size_t _before_nb_allocs;					\
-	size_t _before_tot_nb_allocs;					\
-	size_t _before_nb_enomem;					\
+	__ssz _before_mem_use;						\
+	__sz _before_nb_allocs;						\
+	__sz _before_tot_nb_allocs;					\
+	__sz _before_nb_enomem;						\
 									\
 	uk_preempt_disable();						\
 	_before_mem_use       = (p)->_stats.cur_mem_use;		\
@@ -66,8 +66,8 @@ static inline struct uk_alloc *_uk_alloc_get_actual_default(void)
 
 #define WATCH_STATS_END(p, nb_allocs_diff, nb_enomem_diff,		\
 			mem_use_diff, alloc_size)			\
-	size_t _nb_allocs = (p)->_stats.tot_nb_allocs			\
-			    - _before_tot_nb_allocs;			\
+	__sz _nb_allocs = (p)->_stats.tot_nb_allocs			\
+			  - _before_tot_nb_allocs;			\
 									\
 	/* NOTE: We assume that an allocator call does at
 	 * most one allocation. Otherwise we cannot currently
@@ -77,9 +77,9 @@ static inline struct uk_alloc *_uk_alloc_get_actual_default(void)
 									\
 	*(mem_use_diff)   = (p)->_stats.cur_mem_use			\
 			    - _before_mem_use;				\
-	*(nb_allocs_diff) = (ssize_t) (p)->_stats.cur_nb_allocs		\
+	*(nb_allocs_diff) = (__ssz) (p)->_stats.cur_nb_allocs		\
 			    - _before_nb_allocs;			\
-	*(nb_enomem_diff) = (ssize_t) (p)->_stats.nb_enomem		\
+	*(nb_enomem_diff) = (__ssz) (p)->_stats.nb_enomem		\
 			    - _before_nb_enomem;			\
 	if (_nb_allocs > 0)						\
 		*(alloc_size) = (p)->_stats.last_alloc_size;		\
@@ -88,10 +88,10 @@ static inline struct uk_alloc *_uk_alloc_get_actual_default(void)
 	uk_preempt_enable();
 
 static inline void update_stats(struct uk_alloc_stats *stats,
-				ssize_t nb_allocs_diff,
-				ssize_t nb_enomem_diff,
-				ssize_t mem_use_diff,
-				size_t last_alloc_size)
+				__ssz nb_allocs_diff,
+				__ssz nb_enomem_diff,
+				__ssz mem_use_diff,
+				__sz last_alloc_size)
 {
 	uk_preempt_disable();
 	if (nb_allocs_diff >= 0)
@@ -107,11 +107,11 @@ static inline void update_stats(struct uk_alloc_stats *stats,
 	uk_preempt_enable();
 }
 
-static void *wrapper_malloc(struct uk_alloc *a, size_t size)
+static void *wrapper_malloc(struct uk_alloc *a, __sz size)
 {
 	struct uk_alloc *p = _uk_alloc_get_actual_default();
-	ssize_t nb_allocs, mem_use, nb_enomem;
-	size_t alloc_size;
+	__ssz nb_allocs, mem_use, nb_enomem;
+	__sz alloc_size;
 	void *ret;
 
 	UK_ASSERT(p);
@@ -125,11 +125,11 @@ static void *wrapper_malloc(struct uk_alloc *a, size_t size)
 	return ret;
 }
 
-static void *wrapper_calloc(struct uk_alloc *a, size_t nmemb, size_t size)
+static void *wrapper_calloc(struct uk_alloc *a, __sz nmemb, __sz size)
 {
 	struct uk_alloc *p = _uk_alloc_get_actual_default();
-	ssize_t nb_allocs, mem_use, nb_enomem;
-	size_t alloc_size;
+	__ssz nb_allocs, mem_use, nb_enomem;
+	__sz alloc_size;
 	void *ret;
 
 	UK_ASSERT(p);
@@ -138,16 +138,17 @@ static void *wrapper_calloc(struct uk_alloc *a, size_t nmemb, size_t size)
 	ret = uk_do_calloc(p, nmemb, size);
 	WATCH_STATS_END(p, &nb_allocs, &nb_enomem, &mem_use, &alloc_size);
 
-	update_stats(&a->_stats, nb_allocs, nb_enomem, mem_use, alloc_size);
+	update_stats(&a->_stats, nb_allocs, nb_enomem, mem_use,
+		     ret != NULL ? alloc_size : 0);
 	return ret;
 }
 
 static int wrapper_posix_memalign(struct uk_alloc *a, void **memptr,
-				  size_t align, size_t size)
+				  __sz align, __sz size)
 {
 	struct uk_alloc *p = _uk_alloc_get_actual_default();
-	ssize_t nb_allocs, mem_use, nb_enomem;
-	size_t alloc_size;
+	__ssz nb_allocs, mem_use, nb_enomem;
+	__sz alloc_size;
 	int ret;
 
 	UK_ASSERT(p);
@@ -160,11 +161,11 @@ static int wrapper_posix_memalign(struct uk_alloc *a, void **memptr,
 	return ret;
 }
 
-static void *wrapper_memalign(struct uk_alloc *a, size_t align, size_t size)
+static void *wrapper_memalign(struct uk_alloc *a, __sz align, __sz size)
 {
 	struct uk_alloc *p = _uk_alloc_get_actual_default();
-	ssize_t nb_allocs, mem_use, nb_enomem;
-	size_t alloc_size;
+	__ssz nb_allocs, mem_use, nb_enomem;
+	__sz alloc_size;
 	void *ret;
 
 	UK_ASSERT(p);
@@ -177,11 +178,11 @@ static void *wrapper_memalign(struct uk_alloc *a, size_t align, size_t size)
 	return ret;
 }
 
-static void *wrapper_realloc(struct uk_alloc *a, void *ptr, size_t size)
+static void *wrapper_realloc(struct uk_alloc *a, void *ptr, __sz size)
 {
 	struct uk_alloc *p = _uk_alloc_get_actual_default();
-	ssize_t nb_allocs, mem_use, nb_enomem;
-	size_t alloc_size;
+	__ssz nb_allocs, mem_use, nb_enomem;
+	__sz alloc_size;
 	void *ret;
 
 	UK_ASSERT(p);
@@ -197,8 +198,8 @@ static void *wrapper_realloc(struct uk_alloc *a, void *ptr, size_t size)
 static void wrapper_free(struct uk_alloc *a, void *ptr)
 {
 	struct uk_alloc *p = _uk_alloc_get_actual_default();
-	ssize_t nb_allocs, mem_use, nb_enomem;
-	size_t alloc_size;
+	__ssz nb_allocs, mem_use, nb_enomem;
+	__sz alloc_size;
 
 	UK_ASSERT(p);
 
@@ -212,8 +213,8 @@ static void wrapper_free(struct uk_alloc *a, void *ptr)
 static void *wrapper_palloc(struct uk_alloc *a, unsigned long num_pages)
 {
 	struct uk_alloc *p = _uk_alloc_get_actual_default();
-	ssize_t nb_allocs, mem_use, nb_enomem;
-	size_t alloc_size;
+	__ssz nb_allocs, mem_use, nb_enomem;
+	__sz alloc_size;
 	void *ret;
 
 	UK_ASSERT(p);
@@ -230,8 +231,8 @@ static void wrapper_pfree(struct uk_alloc *a, void *ptr,
 			  unsigned long num_pages)
 {
 	struct uk_alloc *p = _uk_alloc_get_actual_default();
-	ssize_t nb_allocs, mem_use, nb_enomem;
-	size_t alloc_size;
+	__ssz nb_allocs, mem_use, nb_enomem;
+	__sz alloc_size;
 
 	UK_ASSERT(p);
 
@@ -245,7 +246,7 @@ static void wrapper_pfree(struct uk_alloc *a, void *ptr,
 /* The following interfaces do not change allocation statistics,
  * this is why we just forward the calls
  */
-static int wrapper_addmem(struct uk_alloc *a __unused, void *base, size_t size)
+static int wrapper_addmem(struct uk_alloc *a __unused, void *base, __sz size)
 {
 	struct uk_alloc *p = _uk_alloc_get_actual_default();
 
@@ -253,7 +254,7 @@ static int wrapper_addmem(struct uk_alloc *a __unused, void *base, size_t size)
 	return uk_alloc_addmem(p, base, size);
 }
 
-static size_t wrapper_maxalloc(struct uk_alloc *a __unused)
+static __ssz wrapper_maxalloc(struct uk_alloc *a __unused)
 {
 	struct uk_alloc *p = _uk_alloc_get_actual_default();
 
@@ -261,7 +262,7 @@ static size_t wrapper_maxalloc(struct uk_alloc *a __unused)
 	return uk_alloc_maxalloc(p);
 }
 
-static size_t wrapper_availmem(struct uk_alloc *a __unused)
+static __ssz wrapper_availmem(struct uk_alloc *a __unused)
 {
 	struct uk_alloc *p = _uk_alloc_get_actual_default();
 

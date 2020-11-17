@@ -57,26 +57,26 @@ int uk_alloc_register(struct uk_alloc *a);
 /* Functions that can be used by allocators that implement palloc(),
  * pfree() and potentially pavail(), pmaxalloc() only
  */
-void *uk_malloc_ifpages(struct uk_alloc *a, size_t size);
-void *uk_realloc_ifpages(struct uk_alloc *a, void *ptr, size_t size);
+void *uk_malloc_ifpages(struct uk_alloc *a, __sz size);
+void *uk_realloc_ifpages(struct uk_alloc *a, void *ptr, __sz size);
 int uk_posix_memalign_ifpages(struct uk_alloc *a, void **memptr,
-				size_t align, size_t size);
+				__sz align, __sz size);
 void uk_free_ifpages(struct uk_alloc *a, void *ptr);
-ssize_t uk_alloc_availmem_ifpages(struct uk_alloc *a);
-ssize_t uk_alloc_maxalloc_ifpages(struct uk_alloc *a);
+__ssz uk_alloc_availmem_ifpages(struct uk_alloc *a);
+__ssz uk_alloc_maxalloc_ifpages(struct uk_alloc *a);
 
 #if CONFIG_LIBUKALLOC_IFMALLOC
-void *uk_malloc_ifmalloc(struct uk_alloc *a, size_t size);
-void *uk_realloc_ifmalloc(struct uk_alloc *a, void *ptr, size_t size);
+void *uk_malloc_ifmalloc(struct uk_alloc *a, __sz size);
+void *uk_realloc_ifmalloc(struct uk_alloc *a, void *ptr, __sz size);
 int uk_posix_memalign_ifmalloc(struct uk_alloc *a, void **memptr,
-				     size_t align, size_t size);
+				     __sz align, __sz size);
 void uk_free_ifmalloc(struct uk_alloc *a, void *ptr);
 #endif
 
 /* Functionality that is provided based on malloc() and posix_memalign() */
-void *uk_calloc_compat(struct uk_alloc *a, size_t num, size_t len);
-void *uk_realloc_compat(struct uk_alloc *a, void *ptr, size_t size);
-void *uk_memalign_compat(struct uk_alloc *a, size_t align, size_t len);
+void *uk_calloc_compat(struct uk_alloc *a, __sz num, __sz len);
+void *uk_realloc_compat(struct uk_alloc *a, void *ptr, __sz size);
+void *uk_memalign_compat(struct uk_alloc *a, __sz align, __sz len);
 void *uk_palloc_compat(struct uk_alloc *a, unsigned long num_pages);
 void uk_pfree_compat(struct uk_alloc *a, void *ptr, unsigned long num_pages);
 long uk_alloc_pavail_compat(struct uk_alloc *a);
@@ -110,7 +110,7 @@ static inline void __uk_alloc_stats_refresh_minmax(struct uk_alloc_stats *stats)
 }
 
 static inline void _uk_alloc_stats_count_alloc(struct uk_alloc_stats *stats,
-					       void *ptr, size_t size)
+					       void *ptr, __sz size)
 {
 	/* TODO: SMP safety */
 	uk_preempt_disable();
@@ -128,7 +128,7 @@ static inline void _uk_alloc_stats_count_alloc(struct uk_alloc_stats *stats,
 }
 
 static inline void _uk_alloc_stats_count_free(struct uk_alloc_stats *stats,
-					      void *ptr, size_t size)
+					      void *ptr, __sz size)
 {
 	uk_preempt_disable();
 	if (likely(ptr)) {

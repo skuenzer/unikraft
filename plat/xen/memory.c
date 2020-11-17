@@ -34,6 +34,8 @@
  */
 
 #include <string.h>
+#include <stdint.h>
+#include <stddef.h>
 #include <uk/plat/common/sections.h>
 
 #include <common/gnttab.h>
