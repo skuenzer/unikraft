@@ -40,6 +40,7 @@
  * Ported from Mini-OS xenbus.c
  */
 
+#include <stdlib.h>
 #include <string.h>
 #include <uk/errptr.h>
 #include <uk/bitmap.h>

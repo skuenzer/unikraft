@@ -33,6 +33,7 @@
  * THIS HEADER MAY NOT BE EXTRACTED OR MODIFIED IN ANY WAY.
  */
 #define _GNU_SOURCE /* for asprintf() */
+#include <stdlib.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
