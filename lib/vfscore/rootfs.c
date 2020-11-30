@@ -47,6 +47,9 @@
 #include <uk/cpio.h>
 #include <string.h>
 #endif
+#if CONFIG_LIBUKALLOC
+#include <uk/alloc.h>
+#endif
 
 static const char *rootfs   = CONFIG_LIBVFSCORE_ROOTFS;
 
@@ -100,6 +103,19 @@ static int vfscore_rootfs(void)
 		    cpio_extract("/", memregion_desc.base, memregion_desc.len);
 		if (error < 0)
 			uk_pr_err("Failed to mount initrd\n");
+
+#if CONFIG_LIBUKALLOC
+		/* assign initrd memory to default allocator */
+		if ((memregion_desc.flags & UKPLAT_MEMRF_READABLE)
+		    && (memregion_desc.flags & UKPLAT_MEMRF_WRITABLE)
+		    && (uk_alloc_get_default() != NULL)) {
+			uk_pr_info("Assign initrd memory region to default allocator %p\n",
+				  uk_alloc_get_default());
+			uk_alloc_addmem(uk_alloc_get_default(),
+					memregion_desc.base,
+					memregion_desc.len);
+		}
+#endif /* CONFIG_LIBUKALLOC */
 		return error;
 	}
 	uk_pr_err("Failed to mount initrd\n");
