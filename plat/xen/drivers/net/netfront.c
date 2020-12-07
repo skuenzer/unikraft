@@ -349,7 +349,7 @@ static int netfront_rxq_intr_enable(struct uk_netdev_rx_queue *rxq)
 	return (more > 0);
 }
 
-static int netfront_recv(struct uk_netdev *n,
+static int netfront_recv(struct uk_netdev *n __unused,
 		struct uk_netdev_rx_queue *rxq,
 		struct uk_netbuf **pkt)
 {
@@ -470,7 +470,7 @@ static struct uk_netdev_tx_queue *netfront_txq_setup(struct uk_netdev *n,
 	return txq;
 }
 
-static void netfront_handler(evtchn_port_t port __unused,
+static void netfront_rxq_handler(evtchn_port_t port __unused,
 		struct __regs *regs __unused, void *arg)
 {
 	struct uk_netdev_rx_queue *rxq = arg;
@@ -603,7 +603,7 @@ err_free_txrx:
 	return rc;
 }
 
-static int netfront_rx_intr_enable(struct uk_netdev *n,
+static int netfront_rx_intr_enable(struct uk_netdev *n __unused,
 		struct uk_netdev_rx_queue *rxq)
 {
 	int rc;
@@ -629,7 +629,7 @@ static int netfront_rx_intr_enable(struct uk_netdev *n,
 	return rc;
 }
 
-static int netfront_rx_intr_disable(struct uk_netdev *n,
+static int netfront_rx_intr_disable(struct uk_netdev *n __unused,
 		struct uk_netdev_rx_queue *rxq)
 {
 	UK_ASSERT(n != NULL);
