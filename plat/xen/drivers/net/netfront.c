@@ -476,7 +476,7 @@ static struct uk_netdev_tx_queue *netfront_txq_setup(struct uk_netdev *n,
 	return txq;
 }
 
-static void netfront_rxq_handler(evtchn_port_t port __unused,
+static void netfront_handler(evtchn_port_t port __unused,
 		struct __regs *regs __unused, void *arg)
 {
 	struct uk_netdev_rx_queue *rxq = arg;
