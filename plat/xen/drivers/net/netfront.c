@@ -166,9 +166,6 @@ static int netfront_xmit(struct uk_netdev *n,
 	}
 	UK_ASSERT(txq->gref[id] != GRANT_INVALID_REF);
 
-	/* remember netbuf reference for freeing
-	 * after transmission */
-	txq->nbuf[id] = pkt;
 	tx_req->gref = txq->gref[id];
 	tx_req->offset = (uint16_t) uk_netbuf_headroom(pkt);
 	tx_req->size = (uint16_t) pkt->len;
@@ -182,6 +179,9 @@ static int netfront_xmit(struct uk_netdev *n,
 	if (notify)
 		notify_remote_via_evtchn(txq->evtchn);
 
+	/* remember netbuf reference for freeing
+	 * after finished transmission */
+	txq->nbuf[id] = pkt;
 
 	/* some cleanup */
 	do {
