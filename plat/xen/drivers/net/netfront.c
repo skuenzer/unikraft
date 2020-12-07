@@ -84,36 +84,30 @@ static int network_tx_buf_gc(struct uk_netdev_tx_queue *txq)
 	RING_IDX prod, cons;
 	netif_tx_response_t *tx_rsp;
 	uint16_t id;
-	bool more_to_do;
 	int count = 0;
 
-	do {
-		prod = txq->ring.sring->rsp_prod;
-		rmb(); /* Ensure we see responses up to 'rp'. */
+	prod = txq->ring.sring->rsp_prod;
+	rmb(); /* Ensure we see responses up to 'rp'. */
 
-		for (cons = txq->ring.rsp_cons; cons != prod; cons++) {
-			tx_rsp = RING_GET_RESPONSE(&txq->ring, cons);
+	for (cons = txq->ring.rsp_cons; cons != prod; cons++) {
+		tx_rsp = RING_GET_RESPONSE(&txq->ring, cons);
 
-			if (tx_rsp->status == NETIF_RSP_NULL)
-				continue;
+		if (tx_rsp->status == NETIF_RSP_NULL)
+			continue;
 
-			if (tx_rsp->status == NETIF_RSP_ERROR)
-				uk_pr_err("packet error\n");
+		if (tx_rsp->status == NETIF_RSP_ERROR)
+			uk_pr_err("packet error\n");
 
-			id  = tx_rsp->id;
-			UK_ASSERT(id < NET_TX_RING_SIZE);
+		id  = tx_rsp->id;
+		UK_ASSERT(id < NET_TX_RING_SIZE);
 
-			uk_netbuf_free_single(txq->nbuf[id]);
+		uk_netbuf_free_single(txq->nbuf[id]);
 
-			add_id_to_freelist(id, txq->freelist);
+		add_id_to_freelist(id, txq->freelist);
 
-			count++;
-		}
-
-		txq->ring.rsp_cons = prod;
-
-		RING_FINAL_CHECK_FOR_RESPONSES(&txq->ring, more_to_do);
-	} while (more_to_do);
+		count++;
+	}
+	txq->ring.rsp_cons = prod;
 
 	return count;
 }
@@ -127,8 +121,9 @@ static int netfront_xmit(struct uk_netdev *n,
 	uint16_t id;
 	RING_IDX req_prod;
 	netif_tx_request_t *tx_req;
+	bool more_to_do;
 	int notify;
-	int status = 0, count;
+	int status;
 
 	UK_ASSERT(n != NULL);
 	UK_ASSERT(txq != NULL);
@@ -192,7 +187,10 @@ static int netfront_xmit(struct uk_netdev *n,
 
 	/* some cleanup */
 	local_irq_save(flags);
-	count = network_tx_buf_gc(txq);
+	do {
+		network_tx_buf_gc(txq);
+		RING_FINAL_CHECK_FOR_RESPONSES(&txq->ring, more_to_do);
+	} while (more_to_do);
 	local_irq_restore(flags);
 
 	status |= likely(count > 0) ? UK_NETDEV_STATUS_MORE : 0x0;
