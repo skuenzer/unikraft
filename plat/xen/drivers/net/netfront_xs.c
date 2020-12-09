@@ -35,6 +35,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <uk/errptr.h>
 #include <uk/print.h>
 #include <uk/assert.h>
