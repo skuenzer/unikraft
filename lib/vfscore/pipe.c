@@ -34,6 +34,7 @@
  */
 
 #include <uk/config.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <vfscore/file.h>

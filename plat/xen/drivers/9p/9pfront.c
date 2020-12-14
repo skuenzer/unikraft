@@ -32,6 +32,7 @@
  * THIS HEADER MAY NOT BE EXTRACTED OR MODIFIED IN ANY WAY.
  */
 
+#include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <uk/config.h>
