@@ -20,7 +20,17 @@ times
 usleep
 utime
 timer_create
+uk_syscall_e_timer_create
+uk_syscall_r_timer_create
 timer_delete
+uk_syscall_e_timer_delete
+uk_syscall_r_timer_delete
 timer_settime
+uk_syscall_e_timer_settime
+uk_syscall_r_timer_settime
 timer_gettime
+uk_syscall_e_timer_gettime
+uk_syscall_r_timer_gettime
 timer_getoverrun
+uk_syscall_e_timer_getoverrun
+uk_syscall_r_timer_getoverrun
