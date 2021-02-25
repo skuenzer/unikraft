@@ -33,7 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <uk/plat/config.h>
-#include <uk/plat/thread.h>
+#include <uk/plat/ctx.h>
 #include <uk/alloc.h>
 #include <uk/sched.h>
 #include <uk/arch/tls.h>
@@ -140,7 +140,7 @@ struct uk_sched *uk_sched_create(struct uk_alloc *a, size_t prv_size)
 void uk_sched_start(struct uk_sched *sched)
 {
 	UK_ASSERT(sched != NULL);
-	ukplat_thread_ctx_start(&sched->plat_ctx_cbs, sched->idle.ctx);
+	ukplat_ctx_start(sched->idle.ctx);
 }
 
 static void *create_stack(struct uk_alloc *allocator)
@@ -187,7 +187,7 @@ void uk_sched_idle_init(struct uk_sched *sched,
 	idle = &sched->idle;
 
 	rc = uk_thread_init(idle,
-			&sched->plat_ctx_cbs, sched->allocator,
+			sched->allocator,
 			"Idle", stack, tls, function, NULL);
 	if (rc)
 		goto out_crash;
@@ -224,7 +224,7 @@ struct uk_thread *uk_sched_thread_create(struct uk_sched *sched,
 		goto err;
 
 	rc = uk_thread_init(thread,
-			&sched->plat_ctx_cbs, sched->allocator,
+			sched->allocator,
 			name, stack, tls, function, arg);
 	if (rc)
 		goto err;
