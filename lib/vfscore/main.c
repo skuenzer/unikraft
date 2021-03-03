@@ -531,6 +531,59 @@ out_error:
 	return -error;
 }
 
+UK_TRACEPOINT(trace_vfs_pwritev, "%d %p 0x%x 0x%x", int, const struct iovec*,
+	      int, off_t);
+UK_TRACEPOINT(trace_vfs_pwritev_ret, "0x%x", ssize_t);
+UK_TRACEPOINT(trace_vfs_pwritev_err, "%d", int);
+
+UK_SYSCALL_R_DEFINE(ssize_t, pwritev, int, fd, const struct iovec*, iov,
+			int, iovcnt, off_t, offset)
+{
+	struct vfscore_file *fp;
+	ssize_t bytes;
+	int error;
+
+	trace_vfs_pwritev(fd, iov, iovcnt, offset);
+	error = fget(fd, &fp);
+	if (error) {
+		error = -error;
+		goto out_error;
+	}
+
+	/* Check if the file is indeed seekable. */
+	if (fp->f_vfs_flags & UK_VFSCORE_NOPOS) {
+		error = -ESPIPE;
+		goto out_error_fdrop;
+	}
+	/* Check if the file has not already been written to and that it is
+	 * not a character device.
+	 */
+	else if (fp->f_offset < 0 &&
+		(fp->f_dentry == NULL ||
+		 fp->f_dentry->d_vnode->v_type != VCHR)) {
+		error = -EINVAL;
+		goto out_error_fdrop;
+	}
+
+	/* Otherwise, try to read the file. */
+	error = do_pwritev(fp, iov, iovcnt, offset, &bytes);
+
+out_error_fdrop:
+	fdrop(fp);
+
+	if (error < 0)
+		goto out_error;
+
+	trace_vfs_pwritev_ret(bytes);
+	return bytes;
+
+out_error:
+	trace_vfs_pwritev_err(error);
+	return error;
+}
+
+LFS64(pwritev);
+
 UK_TRACEPOINT(trace_vfs_pwrite, "%d %p 0x%x 0x%x", int, const void*, size_t,
 	      off_t);
 UK_TRACEPOINT(trace_vfs_pwrite_ret, "0x%x", ssize_t);
@@ -598,59 +651,6 @@ UK_SYSCALL_R_DEFINE(ssize_t, write, int, fd, const void *, buf, size_t, count)
 		trace_vfs_write_ret(bytes);
 	return bytes;
 }
-
-UK_TRACEPOINT(trace_vfs_pwritev, "%d %p 0x%x 0x%x", int, const struct iovec*,
-	      int, off_t);
-UK_TRACEPOINT(trace_vfs_pwritev_ret, "0x%x", ssize_t);
-UK_TRACEPOINT(trace_vfs_pwritev_err, "%d", int);
-
-UK_SYSCALL_R_DEFINE(ssize_t, pwritev, int, fd, const struct iovec*, iov,
-			int, iovcnt, off_t, offset)
-{
-	struct vfscore_file *fp;
-	ssize_t bytes;
-	int error;
-
-	trace_vfs_pwritev(fd, iov, iovcnt, offset);
-	error = fget(fd, &fp);
-	if (error) {
-		error = -error;
-		goto out_error;
-	}
-
-	/* Check if the file is indeed seekable. */
-	if (fp->f_vfs_flags & UK_VFSCORE_NOPOS) {
-		error = -ESPIPE;
-		goto out_error_fdrop;
-	}
-	/* Check if the file has not already been written to and that it is
-	 * not a character device.
-	 */
-	else if (fp->f_offset < 0 &&
-		(fp->f_dentry == NULL ||
-		 fp->f_dentry->d_vnode->v_type != VCHR)) {
-		error = -EINVAL;
-		goto out_error_fdrop;
-	}
-
-	/* Otherwise, try to read the file. */
-	error = do_pwritev(fp, iov, iovcnt, offset, &bytes);
-
-out_error_fdrop:
-	fdrop(fp);
-
-	if (error < 0)
-		goto out_error;
-
-	trace_vfs_pwritev_ret(bytes);
-	return bytes;
-
-out_error:
-	trace_vfs_pwritev_err(error);
-	return error;
-}
-
-LFS64(pwritev);
 
 UK_TRACEPOINT(trace_vfs_writev, "%d %p 0x%x 0x%x", int, const struct iovec*,
 	      int);
