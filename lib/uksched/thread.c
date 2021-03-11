@@ -113,6 +113,7 @@ int uk_thread_init(struct uk_thread *thread,
 		void (*function)(void *), void *arg)
 {
 	unsigned long sp;
+	uintptr_t orig_tlsp;
 	void *ctx;
 	int ret = 0;
 	struct uk_thread_inittab_entry *itr;
@@ -156,6 +157,14 @@ int uk_thread_init(struct uk_thread *thread,
 #endif
 
 	/* Iterate over registered thread initialization functions */
+	/* NOTE: We set TLS to the one of the new thread in order to
+	 *       enable TLS initializations with the init functions.
+	 * NOTE: Because scheduling might not be enabled yet for creating
+	 *       the first thread(s), `uk_thread_current()` may return NULL.
+	 *       Because of this, we get the current TLSP from the CPU.
+	 */
+	orig_tlsp = ukplat_tlsp_get();
+	ukplat_tlsp_set(thread->tlsp);
 	uk_thread_inittab_foreach(itr) {
 		if (unlikely(!itr->init))
 			continue;
@@ -177,6 +186,9 @@ int uk_thread_init(struct uk_thread *thread,
 	/* Platform specific context initialization */
 	ukplat_ctx_init(thread->ctx, sp);
 
+	/* Restore original TLS */
+	ukplat_tlsp_set(orig_tlsp);
+
 	uk_pr_info("Thread \"%s\": pointer: %p, stack: %p, tls: %p\n",
 		   name, thread, thread->stack, thread->tls);
 
@@ -191,6 +203,8 @@ err_fini:
 			continue;
 		(itr->fini)(thread);
 	}
+	/* Restore TLS of current thread */
+	ukplat_tlsp_set(orig_tlsp);
 	uk_free(allocator, thread->ctx);
 err_out:
 	return ret;
