@@ -1,8 +1,9 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Authors: Costin Lupu <costin.lupu@cs.pub.ro>
+ * Authors: Simon Kuenzer <simon.kuenzer@neclab.eu>
  *
- * Copyright (c) 2018, NEC Europe Ltd., NEC Corporation. All rights reserved.
+ * Copyright (c) 2021, NEC Laboratories GmbH, NEC Corporation.
+ *                     All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,65 +31,46 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <uk/plat/ctx.h>
-#include <uk/plat/common/ctx.h>
+#ifndef __UKPLAT_TLS_H__
+#define __UKPLAT_TLS_H__
+
+#include <uk/config.h>
+#include <uk/arch/types.h>
+#include <uk/arch/tls.h>
+#include <uk/essentials.h>
+#if CONFIG_LIBUKDEBUG
 #include <uk/assert.h>
-#include <uk/plat/common/tls.h>
-#include <uk/plat/common/cpu.h>
+#endif /* CONFIG_LIBUKDEBUG */
 
-/* Gets run when a new thread is scheduled the first time ever,
- * defined in x86_[32/64].S
+/**
+ * Gets the current thread local storage register value
+ * NOTE: The returned value is not necessarily the base address of the TLS
+ *       region (see `ukarch_tls_pointer()`).
  */
-extern void asm_thread_starter(void);
+__uptr ukplat_tlsp_get(void);
 
-__sz ukplat_ctx_size(void)
+/**
+ * Sets the thread local storage register
+ *
+ * @param tlsp TLS pointer value (see `ukarch_tls_pointer()`)
+ */
+void ukplat_tlsp_set(__uptr tlsp);
+
+/**
+ * Helper for setting the thread local storage register
+ * to a given base address of a TLS area
+ *
+ * @param tls_area Base pointer of the TLS area to set. Please note that
+ *                 it has to be of size `ukarch_tls_area_size()`
+ */
+static inline void ukplat_tls_set(void *tls_area)
 {
-	return sizeof(struct sw_ctx) + arch_extregs_size();
+#if CONFIG_LIBUKDEBUG
+	UK_ASSERT(tls_area);
+	UK_ASSERT(IS_ALIGNED((__sz) tls_area, ukarch_tls_area_align()));
+#endif /* CONFIG_LIBUKDEBUG */
+
+	ukplat_tlsp_set(ukarch_tls_pointer(tls_area));
 }
 
-void ukplat_ctx_init(struct ukplat_ctx *sw_ctx,
-		     unsigned long sp)
-{
-	UK_ASSERT(sw_ctx != NULL);
-
-	sw_ctx->sp   = sp;
-	sw_ctx->ip   = (unsigned long) asm_thread_starter;
-	arch_init_extregs(sw_ctx);
-
-	save_extregs(sw_ctx);
-}
-
-extern void asm_ctx_start(unsigned long sp, unsigned long ip) __noreturn;
-
-void ukplat_ctx_start(struct ukplat_ctx *sw_ctx)
-{
-	UK_ASSERT(sw_ctx != NULL);
-
-	/* Switch stacks and run the thread */
-	asm_ctx_start(sw_ctx->sp, sw_ctx->ip);
-
-	UK_CRASH("Thread did not start.");
-}
-
-extern void asm_sw_ctx_switch(struct ukplat_ctx *prevctx,
-			      struct ukplat_ctx *nextctx);
-
-void ukplat_ctx_switch(struct ukplat_ctx *prevctx,
-		       struct ukplat_ctx *nextctx)
-{
-	save_extregs(prevctx);
-	restore_extregs(nextctx);
-	asm_sw_ctx_switch(prevctx, nextctx);
-}
-
-__uptr ukplat_tlsp_get(void)
-{
-	return (__uptr) get_tls_pointer();
-}
-
-void ukplat_tlsp_set(__uptr tlsp)
-{
-	set_tls_pointer(tlsp);
-}
+#endif /* __UKPLAT_TLS_H__ */

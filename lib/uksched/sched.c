@@ -140,6 +140,7 @@ struct uk_sched *uk_sched_create(struct uk_alloc *a, size_t prv_size)
 void uk_sched_start(struct uk_sched *sched)
 {
 	UK_ASSERT(sched != NULL);
+	ukplat_tlsp_set(sched->idle.tlsp);
 	ukplat_ctx_start(sched->idle.ctx);
 }
 

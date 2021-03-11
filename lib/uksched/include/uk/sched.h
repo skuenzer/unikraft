@@ -33,6 +33,7 @@
 #ifndef __UK_SCHED_H__
 #define __UK_SCHED_H__
 
+#include <uk/plat/tls.h>
 #include <uk/alloc.h>
 #include <uk/thread.h>
 #include <uk/assert.h>
@@ -258,6 +259,11 @@ static inline
 void uk_sched_thread_switch(struct uk_thread *prev,
 		struct uk_thread *next)
 {
+	struct uk_thread *prev = __uk_sched_thread_current;
+
+	__uk_sched_thread_current = next;
+	prev->tlsp = ukplat_tlsp_get();
+	ukplat_tlsp_set(next->tlsp);
 	ukplat_ctx_switch(prev->ctx, next->ctx);
 }
 

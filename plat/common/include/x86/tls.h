@@ -32,6 +32,8 @@
 
 #include <x86/cpu_defs.h>
 
+#define get_tls_pointer() rdmsrl(X86_MSR_FS_BASE)
+
 #define set_tls_pointer(ptr) wrmsrl(X86_MSR_FS_BASE, ptr)
 
 #endif /* __PLAT_CMN_X86_TLS_H__ */
