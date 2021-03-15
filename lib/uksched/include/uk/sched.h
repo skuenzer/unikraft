@@ -256,8 +256,7 @@ void uk_sched_thread_kill(struct uk_sched *sched,
 		struct uk_thread *thread);
 
 static inline
-void uk_sched_thread_switch(struct uk_thread *prev,
-		struct uk_thread *next)
+void uk_sched_thread_switch(struct uk_thread *next)
 {
 	struct uk_thread *prev = __uk_sched_thread_current;
 
