@@ -34,6 +34,7 @@
 
 #ifndef __ASSEMBLY__
 #include <stdint.h>
+#include <stddef.h>
 #include <uk/plat/ctx.h>
 
 struct ukplat_ctx {

@@ -45,8 +45,18 @@ struct ukplat_ctx;
  * Provided by the platform library
  */
 __sz ukplat_ctx_size(void);
-void ukplat_ctx_init(struct ukplat_ctx *ctx, unsigned long sp,
-		     unsigned long tlsp);
+
+/**
+ * Initializes a struct ukplat_ctx instance
+ *
+ * @param ctx Memory object of size `ukplat_ctx_size()` to initialize
+ * @param sp Stack pointer, should be an address within given stack memory area,
+ *           can be initialized with 0 for cases when `ctx` will be used to
+ *           store a context as first operation (e.g., `ukplat_ctx_clone()`,
+ *           `ukplat_ctx_switch()`)
+ */
+void ukplat_ctx_init(struct ukplat_ctx *ctx, __uptr sp);
+
 void ukplat_ctx_start(struct ukplat_ctx *ctx) __noreturn;
 void ukplat_ctx_switch(struct ukplat_ctx *store, struct ukplat_ctx *load);
 

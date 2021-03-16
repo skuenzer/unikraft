@@ -124,6 +124,7 @@ static inline void arch_init_extregs(struct ukplat_ctx *ctx)
 				x86_cpu_features.extregs_align);
 	// Initialize extregs area: zero out, then save a valid layout to it.
 	memset((void *)ctx->extregs, 0, x86_cpu_features.extregs_size);
+	save_extregs(ctx);
 }
 
 static inline void _init_cpufeatures(void)
