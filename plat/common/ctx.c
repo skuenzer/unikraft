@@ -72,15 +72,15 @@ void ukplat_ctx_start(struct ukplat_ctx *sw_ctx)
 	UK_CRASH("Thread did not start.");
 }
 
-extern void asm_sw_ctx_switch(struct ukplat_ctx *prevctx,
-			      struct ukplat_ctx *nextctx);
+extern void asm_ctx_switch(struct ukplat_ctx *store,
+			   struct ukplat_ctx *load);
 
-void ukplat_ctx_switch(struct ukplat_ctx *prevctx,
-		       struct ukplat_ctx *nextctx)
+void ukplat_ctx_switch(struct ukplat_ctx *store,
+		       struct ukplat_ctx *load)
 {
-	save_extregs(prevctx);
-	restore_extregs(nextctx);
-	asm_sw_ctx_switch(prevctx, nextctx);
+	save_extregs(store);
+	restore_extregs(load);
+	asm_ctx_switch(store, load);
 }
 
 __uptr ukplat_tlsp_get(void)

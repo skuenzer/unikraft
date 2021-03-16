@@ -48,6 +48,6 @@ __sz ukplat_ctx_size(void);
 void ukplat_ctx_init(struct ukplat_ctx *ctx, unsigned long sp,
 		     unsigned long tlsp);
 void ukplat_ctx_start(struct ukplat_ctx *ctx) __noreturn;
-void ukplat_ctx_switch(struct ukplat_ctx *prevctx, struct ukplat_ctx *nextctx);
+void ukplat_ctx_switch(struct ukplat_ctx *store, struct ukplat_ctx *load);
 
 #endif /* __UKPLAT_CTX_H__ */

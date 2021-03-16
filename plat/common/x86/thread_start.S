@@ -44,7 +44,7 @@ ENTRY(asm_ctx_start)
 	push %rsi           /* push IP and return */
 	ret
 
-ENTRY(asm_sw_ctx_switch)
+ENTRY(asm_ctx_switch)
 	pushq %rbp
 	pushq %rbx
 	pushq %r12
