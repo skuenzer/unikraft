@@ -32,28 +32,31 @@
 #ifndef __PLAT_CMN_CTX_H__
 #define __PLAT_CMN_CTX_H__
 
+#include <uk/arch/types.h>
+
 #ifndef __ASSEMBLY__
-#include <stdint.h>
-#include <stddef.h>
 #include <uk/plat/ctx.h>
+#include <uk/essentials.h>
 
 struct ukplat_ctx {
-	unsigned long sp;	/* Stack pointer */
-	unsigned long ip;	/* Instruction pointer */
-	unsigned long tlsp;	/* thread-local storage pointer */
-	uintptr_t extregs;	/* Pointer to an area to which extended
+	__uptr sp;		/* Stack pointer */
+	__uptr ip;		/* Instruction pointer */
+	__uptr extregs;		/* Pointer to area to which extended
 				 * registers are saved on context switch.
 				 */
-	uint8_t _extregs[];     /* Reserved memory area for extended
+	__u8 _extregs[];	/* Reserved memory area for extended
 				 * registers state
 				 */
-};
-#endif
+} __packed;
+#endif /* __ASSEMBLY__ */
 
 #define OFFSETOF_SW_CTX_SP      0
+#if (defined __PTR_IS_16)
+#define OFFSETOF_SW_CTX_IP      2
+#elif (defined __PTR_IS_32)
+#define OFFSETOF_SW_CTX_IP      4
+#elif (defined __PTR_IS_64)
 #define OFFSETOF_SW_CTX_IP      8
-
-/* TODO This should be better defined in the thread header */
-#define OFFSETOF_UKTHREAD_SW_CTX  16
+#endif
 
 #endif /* __PLAT_CMN_SW_CTX_H__ */
