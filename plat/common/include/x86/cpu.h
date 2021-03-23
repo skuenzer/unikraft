@@ -50,8 +50,8 @@ enum save_cmd {
 };
 
 struct _x86_features {
-	unsigned long extregs_size;	/* Size of the extregs area */
-	unsigned long extregs_align;	/* Alignment of the extregs area */
+	__sz extregs_size;		/* Size of the extregs area */
+	__sz extregs_align;		/* Alignment of the extregs area */
 	enum save_cmd save;		/* which CPU instruction to use for
 					 * saving/restoring extregs.
 					 */
@@ -68,43 +68,49 @@ static inline void cpuid(__u32 fn, __u32 subfn,
 		     : "a"(fn), "c" (subfn));
 }
 
-static inline void save_extregs(struct ukplat_ctx *ctx)
+static inline void arch_save_extregs(__uptr extregs)
 {
+	UK_ASSERT(extregs);
+	UK_ASSERT(IS_ALIGNED(extregs, x86_cpu_features.extregs_align));
+
 	switch (x86_cpu_features.save) {
 	case X86_SAVE_NONE:
 		/* nothing to do */
 		break;
 	case X86_SAVE_FSAVE:
-		asm volatile("fsave (%0)" :: "r"(ctx->extregs) : "memory");
+		asm volatile("fsave (%0)" :: "r"(extregs) : "memory");
 		break;
 	case X86_SAVE_FXSAVE:
-		asm volatile("fxsave (%0)" :: "r"(ctx->extregs) : "memory");
+		asm volatile("fxsave (%0)" :: "r"(extregs) : "memory");
 		break;
 	case X86_SAVE_XSAVE:
-		asm volatile("xsave (%0)" :: "r"(ctx->extregs),
+		asm volatile("xsave (%0)" :: "r"(extregs),
 				"a"(0xffffffff), "d"(0xffffffff) : "memory");
 		break;
 	case X86_SAVE_XSAVEOPT:
-		asm volatile("xsaveopt (%0)" :: "r"(ctx->extregs),
+		asm volatile("xsaveopt (%0)" :: "r"(extregs),
 				"a"(0xffffffff), "d"(0xffffffff) : "memory");
 		break;
 	}
 }
-static inline void restore_extregs(struct ukplat_ctx *ctx)
+static inline void arch_load_extregs(__uptr extregs)
 {
+	UK_ASSERT(extregs);
+	UK_ASSERT(IS_ALIGNED(extregs, x86_cpu_features.extregs_align));
+
 	switch (x86_cpu_features.save) {
 	case X86_SAVE_NONE:
 		/* nothing to do */
 		break;
 	case X86_SAVE_FSAVE:
-		asm volatile("frstor (%0)" :: "r"(ctx->extregs));
+		asm volatile("frstor (%0)" :: "r"(extregs));
 		break;
 	case X86_SAVE_FXSAVE:
-		asm volatile("fxrstor (%0)" :: "r"(ctx->extregs));
+		asm volatile("fxrstor (%0)" :: "r"(extregs));
 		break;
 	case X86_SAVE_XSAVE:
 	case X86_SAVE_XSAVEOPT:
-		asm volatile("xrstor (%0)" :: "r"(ctx->extregs),
+		asm volatile("xrstor (%0)" :: "r"(extregs),
 				"a"(0xffffffff), "d"(0xffffffff));
 		break;
 	}
@@ -113,18 +119,29 @@ static inline void restore_extregs(struct ukplat_ctx *ctx)
 static inline __sz arch_extregs_size(void)
 {
 	/* Make sure that _init_cpufeatures() was called before */
-	UK_ASSERT(x86_cpu_features.extregs_size > 0);
+	UK_ASSERT(x86_cpu_features.extregs_align >= 1);
 
-	return x86_cpu_features.extregs_align + x86_cpu_features.extregs_size;
+	return x86_cpu_features.extregs_size;
 }
 
-static inline void arch_init_extregs(struct ukplat_ctx *ctx)
+static inline __sz arch_extregs_align(void)
 {
-	ctx->extregs = ALIGN_UP((uintptr_t)ctx->_extregs,
-				x86_cpu_features.extregs_align);
-	// Initialize extregs area: zero out, then save a valid layout to it.
-	memset((void *)ctx->extregs, 0, x86_cpu_features.extregs_size);
-	save_extregs(ctx);
+	/* Make sure that _init_cpufeatures() was called before */
+	UK_ASSERT(x86_cpu_features.extregs_align >= 1);
+
+	return x86_cpu_features.extregs_align;
+}
+
+static inline void arch_init_extregs(__uptr extregs)
+{
+	UK_ASSERT(extregs);
+	UK_ASSERT(IS_ALIGNED(extregs, x86_cpu_features.extregs_align));
+
+	/* Initialize extregs area:
+	 * Zero out and then save a valid layout to it.
+	 */
+	memset((void *) extregs, 0, x86_cpu_features.extregs_size);
+	arch_save_extregs(extregs);
 }
 
 static inline void _init_cpufeatures(void)
@@ -156,6 +173,11 @@ static inline void _init_cpufeatures(void)
 		x86_cpu_features.extregs_size = 108;
 		x86_cpu_features.extregs_align = 1;
 	}
+
+	/* NOTE: In case a condition is added here that disables extregs
+	 *       (size=0), please make sure that align is still set to 1
+	 *       so that we can detect if _init_cpufeatures() was called.
+	 */
 }
 
 unsigned long read_cr2(void);
