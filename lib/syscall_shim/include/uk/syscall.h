@@ -47,6 +47,13 @@ extern "C" {
 #endif
 
 /*
+ * Contains the caller return address (caller return point)
+ * NOTE: It is currently only supported by binary system calls
+ *       When unsupported `uk_syscall_caller_retp` is `0x0`
+ */
+extern __uk_tls __uptr uk_syscall_caller_retp;
+
+/*
  * Whenever the hidden Config.uk option LIBSYSCALL_SHIM_NOWRAPPER
  * is set, the creation of libc-style wrappers are disable by the
  * UK_SYSCALL_DEFINE() and UK_SYSCALL_R_DEFINE() macros. Alternatively,
