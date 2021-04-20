@@ -292,6 +292,18 @@ extern "C" {
 #endif
 #endif /* !__containerof */
 
+/*
+ * Return address of caller
+ */
+#ifndef __caller_ret
+#ifdef __GNUC__
+#define __caller_ret() \
+	((void *) __builtin_extract_return_addr(__builtin_return_address(0)))
+#else
+#error Missing a definition for `__caller_ret()`
+#endif /* !__GNUC__ */
+#endif /* !__caller_ret */
+
 #ifndef UK_CTASSERT
 #define UK_CTASSERT(x)             _UK_CTASSERT(x, __LINE__)
 #define _UK_CTASSERT(x, y)         __UK_CTASSERT(x, y)
