@@ -36,4 +36,6 @@ $(LIBUKSTORE_GEN_INCLUDES_PATH)/uk/_store_libs.h: $(LIBUKSTORE_BASE)/gen_libs.h.
 		$(AWK) -F '-' -f $(LIBUKSTORE_BASE)/gen_libs.h.awk \
 		$(LIBUKSTORE_BUILD)/uk_libs.in > $@)
 
+EACHOLIB_SRCS = $(LIBUKSTORE_BASE)/libstore.c|ukstore
+
 LIBUKSTORE_CLEAN = $(LIBUKSTORE_PHONY_SRC) $(LIBUKSTORE_PHONY_SRC_NEW)
