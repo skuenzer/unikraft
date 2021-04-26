@@ -1,0 +1,3 @@
+config LIBUKSTORE
+	bool "ukstore: Library monitoring and statistics"
+	default n
