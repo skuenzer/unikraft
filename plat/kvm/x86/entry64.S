@@ -27,6 +27,7 @@
  * SUCH DAMAGE.
  */
 
+#include <uk/arch/lcpu.h>
 #include <x86/cpu_defs.h>
 #include <kvm-x86/traps.h>
 #include <kvm-x86/multiboot_defs.h>
@@ -204,14 +205,14 @@ ENTRY(_libkvmplat_start64)
 	/* ecx and edx now contain capability information, so we can now
 	 * enable capabilities based on the indicated features */
 	/* note: OSXSAVE needs to be enabled before AVX and PKU */
-	testl $(X86_CPUID1_ECX_XSAVE), %ecx
+	testl $(__X86_CPUID1_ECX_XSAVE), %ecx
 	jz noxsave
 	orl $(X86_CR4_OSXSAVE), %edi
 	movq %rdi, %cr4
 #if __AVX__
 	/* now enable AVX. This needs to be last checking cpuid features from
 	 * the eax=1 cpuid call, because it clobbers ecx */
-	testl $(X86_CPUID1_ECX_AVX), %ecx
+	testl $(__X86_CPUID1_ECX_AVX), %ecx
 	jz noavx
 	xorl %ecx, %ecx
 	xgetbv
@@ -228,14 +229,14 @@ noxsave:
 	cpuid
 	/* ebx, ecx, edx now contain extended capabilities information. */
 	/* check for and enable FS/GSBASE */
-	testl $(X86_CPUID7_EBX_FSGSBASE), %ebx
+	testl $(__X86_CPUID7_EBX_FSGSBASE), %ebx
 	jz nofsgsbase
 	orl $(X86_CR4_FSGSBASE), %edi
 	movq %rdi, %cr4
 nofsgsbase:
 #if CONFIG_HAVE_X86PKU
 	/* check for Memory Protection Keys (PKU) */
-	testl $(X86_CPUID7_ECX_PKU), %ecx
+	testl $(__X86_CPUID7_ECX_PKU), %ecx
 	jz nopku
 	/* only enable PKU if we support XSAVE */
 	testl $(X86_CR4_OSXSAVE), %edi

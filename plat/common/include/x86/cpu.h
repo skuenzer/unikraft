@@ -41,24 +41,6 @@
 void halt(void);
 void system_off(void);
 
-enum save_cmd {
-	X86_SAVE_NONE,
-	X86_SAVE_FSAVE,
-	X86_SAVE_FXSAVE,
-	X86_SAVE_XSAVE,
-	X86_SAVE_XSAVEOPT
-};
-
-struct _x86_features {
-	__sz extregs_size;		/* Size of the extregs area */
-	__sz extregs_align;		/* Alignment of the extregs area */
-	enum save_cmd save;		/* which CPU instruction to use for
-					 * saving/restoring extregs.
-					 */
-};
-
-extern struct _x86_features x86_cpu_features;
-
 static inline void cpuid(__u32 fn, __u32 subfn,
 			 __u32 *eax, __u32 *ebx,
 			 __u32 *ecx, __u32 *edx)
@@ -66,118 +48,6 @@ static inline void cpuid(__u32 fn, __u32 subfn,
 	asm volatile("cpuid"
 		     : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx)
 		     : "a"(fn), "c" (subfn));
-}
-
-static inline void arch_save_extregs(__uptr extregs)
-{
-	UK_ASSERT(extregs);
-	UK_ASSERT(IS_ALIGNED(extregs, x86_cpu_features.extregs_align));
-
-	switch (x86_cpu_features.save) {
-	case X86_SAVE_NONE:
-		/* nothing to do */
-		break;
-	case X86_SAVE_FSAVE:
-		asm volatile("fsave (%0)" :: "r"(extregs) : "memory");
-		break;
-	case X86_SAVE_FXSAVE:
-		asm volatile("fxsave (%0)" :: "r"(extregs) : "memory");
-		break;
-	case X86_SAVE_XSAVE:
-		asm volatile("xsave (%0)" :: "r"(extregs),
-				"a"(0xffffffff), "d"(0xffffffff) : "memory");
-		break;
-	case X86_SAVE_XSAVEOPT:
-		asm volatile("xsaveopt (%0)" :: "r"(extregs),
-				"a"(0xffffffff), "d"(0xffffffff) : "memory");
-		break;
-	}
-}
-static inline void arch_load_extregs(__uptr extregs)
-{
-	UK_ASSERT(extregs);
-	UK_ASSERT(IS_ALIGNED(extregs, x86_cpu_features.extregs_align));
-
-	switch (x86_cpu_features.save) {
-	case X86_SAVE_NONE:
-		/* nothing to do */
-		break;
-	case X86_SAVE_FSAVE:
-		asm volatile("frstor (%0)" :: "r"(extregs));
-		break;
-	case X86_SAVE_FXSAVE:
-		asm volatile("fxrstor (%0)" :: "r"(extregs));
-		break;
-	case X86_SAVE_XSAVE:
-	case X86_SAVE_XSAVEOPT:
-		asm volatile("xrstor (%0)" :: "r"(extregs),
-				"a"(0xffffffff), "d"(0xffffffff));
-		break;
-	}
-}
-
-static inline __sz arch_extregs_size(void)
-{
-	/* Make sure that _init_cpufeatures() was called before */
-	UK_ASSERT(x86_cpu_features.extregs_align >= 1);
-
-	return x86_cpu_features.extregs_size;
-}
-
-static inline __sz arch_extregs_align(void)
-{
-	/* Make sure that _init_cpufeatures() was called before */
-	UK_ASSERT(x86_cpu_features.extregs_align >= 1);
-
-	return x86_cpu_features.extregs_align;
-}
-
-static inline void arch_init_extregs(__uptr extregs)
-{
-	UK_ASSERT(extregs);
-	UK_ASSERT(IS_ALIGNED(extregs, x86_cpu_features.extregs_align));
-
-	/* Initialize extregs area:
-	 * Zero out and then save a valid layout to it.
-	 */
-	memset((void *) extregs, 0, x86_cpu_features.extregs_size);
-	arch_save_extregs(extregs);
-}
-
-static inline void _init_cpufeatures(void)
-{
-	__u32 eax, ebx, ecx, edx;
-
-	/* Why are we saving the eax register content to the eax variable with
-	 * "=a(eax)", but then never use it?
-	 * Because gcc otherwise will assume that the eax register still
-	 * contains "1" after this asm expression. See the "Warning" note at
-	 * https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html#InputOperands
-	 */
-	cpuid(1, 0, &eax, &ebx, &ecx, &edx);
-	if (ecx & X86_CPUID1_ECX_OSXSAVE) {
-		cpuid(0xd, 1, &eax, &ebx, &ecx, &edx);
-		if (eax & X86_CPUIDD1_EAX_XSAVEOPT)
-			x86_cpu_features.save = X86_SAVE_XSAVEOPT;
-		else
-			x86_cpu_features.save = X86_SAVE_XSAVE;
-		cpuid(0xd, 0, &eax, &ebx, &ecx, &edx);
-		x86_cpu_features.extregs_size = ebx;
-		x86_cpu_features.extregs_align = 64;
-	} else if (edx & X86_CPUID1_EDX_FXSR) {
-		x86_cpu_features.save = X86_SAVE_FXSAVE;
-		x86_cpu_features.extregs_size = 512;
-		x86_cpu_features.extregs_align = 16;
-	} else {
-		x86_cpu_features.save = X86_SAVE_FSAVE;
-		x86_cpu_features.extregs_size = 108;
-		x86_cpu_features.extregs_align = 1;
-	}
-
-	/* NOTE: In case a condition is added here that disables extregs
-	 *       (size=0), please make sure that align is still set to 1
-	 *       so that we can detect if _init_cpufeatures() was called.
-	 */
 }
 
 unsigned long read_cr2(void);
@@ -332,10 +202,10 @@ static inline void _init_syscall(void)
 	int have_syscall = 0;
 
 	/* Check for availability of extended features */
-	cpuid(0x80000000, 0, &eax, &ebx, &ecx, &edx);
+	ukarch_x86_cpuid(0x80000000, 0, &eax, &ebx, &ecx, &edx);
 	if (eax >= 0x80000001) {
-		cpuid(0x80000001, 0, &eax, &ebx, &ecx, &edx);
-		have_syscall = (edx & X86_CPUID3_SYSCALL);
+		ukarch_x86_cpuid(0x80000001, 0, &eax, &ebx, &ecx, &edx);
+		have_syscall = (edx & __X86_CPUID3_SYSCALL);
 	}
 
 	if (!have_syscall)

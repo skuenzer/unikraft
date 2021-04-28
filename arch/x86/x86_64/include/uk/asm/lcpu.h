@@ -112,7 +112,9 @@ struct __regs {
 #ifndef nop
 #define nop()   __asm__ __volatile__ ("nop" : : : "memory")
 #endif
+#endif /* !__ASSEMBLY__ */
 
+#ifndef __ASSEMBLY__
 static inline unsigned long ukarch_read_sp(void)
 {
 	unsigned long sp;
@@ -125,5 +127,31 @@ static inline void ukarch_spinwait(void)
 {
 	__asm__ __volatile__("pause" : : : "memory");
 }
+#endif /* !__ASSEMBLY__ */
 
+/* CPUID feature bits in ECX and EDX when EAX=1 */
+#define __X86_CPUID1_ECX_XSAVE    (1 << 26)
+#define __X86_CPUID1_ECX_OSXSAVE  (1 << 27)
+#define __X86_CPUID1_ECX_AVX      (1 << 28)
+#define __X86_CPUID1_EDX_FPU      (1 << 0)
+#define __X86_CPUID1_EDX_FXSR     (1 << 24)
+#define __X86_CPUID1_EDX_SSE      (1 << 25)
+/* CPUID feature bits in EBX and ECX when EAX=7, ECX=0 */
+#define __X86_CPUID7_EBX_FSGSBASE (1 << 0)
+#define __X86_CPUID7_ECX_PKU	(1 << 3)
+#define __X86_CPUID7_ECX_OSPKE	(1 << 4)
+/* CPUID feature bits when EAX=0xd, ECX=1 */
+#define __X86_CPUIDD1_EAX_XSAVEOPT (1<<0)
+/* CPUID 80000001H:EDX feature list */
+#define __X86_CPUID3_SYSCALL      (1 << 11)
+
+#ifndef __ASSEMBLY__
+static inline void ukarch_x86_cpuid(__u32 fn, __u32 subfn,
+				    __u32 *eax, __u32 *ebx,
+				    __u32 *ecx, __u32 *edx)
+{
+	asm volatile("cpuid"
+		     : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx)
+		     : "a"(fn), "c" (subfn));
+}
 #endif /* !__ASSEMBLY__ */
