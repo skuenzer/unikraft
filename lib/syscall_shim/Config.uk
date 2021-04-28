@@ -29,6 +29,8 @@ if LIBSYSCALL_SHIM
 		default n
 		depends on ARCH_X86_64
 		select HAVE_SYSCALL
+		select LIBUKSCHED
+		select LIBUKALLOC
 		help
 			Enables a system call handler for binary system call
 			requests (e.g., sysenter/sysexit). The handler maps

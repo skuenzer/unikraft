@@ -74,6 +74,9 @@ struct uk_thread {
 	/* TODO: Move to `TLS` and define within uksignal */
 	struct uk_thread_sig signals_container;
 #endif
+#if CONFIG_LIBSYSCALL_SHIM_HANDLER
+	void *syscall_shim;
+#endif /* CONFIG_LIBSYSCALL_SHIM_HANDLER */
 };
 
 UK_TAILQ_HEAD(uk_thread_list, struct uk_thread);
