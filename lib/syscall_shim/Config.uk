@@ -37,6 +37,15 @@ if LIBSYSCALL_SHIM
 			register values accordingly to the Linux ABI standard
 			(see: man syscalls[2]).
 
+	config LIBSYSCALL_SHIM_USERLANDTLS
+	       bool "Userland TLS"
+	       default n
+	       depends on LIBSYSCALL_SHIM_HANDLER
+	       help
+		Enables a second TLS that is valid when leaving binary
+		system calls. On system call enter, Unikraft's TLS
+		pointer is restored.
+
 	config LIBSYSCALL_SHIM_DEBUG
 		bool "Enable debug messages"
 		default n

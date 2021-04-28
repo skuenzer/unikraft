@@ -403,6 +403,11 @@ const char *uk_syscall_name_p(long nr);
  */
 long (*uk_syscall_r_fn(long nr))(void);
 
+#if CONFIG_LIBSYSCALL_SHIM_USERLANDTLS
+void uk_syscall_userland_tlsp_set(__uptr tlsp);
+__uptr uk_syscall_userland_tlsp_get(void);
+#endif /* CONFIG_LIBSYSCALL_SHIM_USERLANDTLS */
+
 #endif /* CONFIG_LIBSYSCALL_SHIM */
 
 #ifdef __cplusplus

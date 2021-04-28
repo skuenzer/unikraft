@@ -46,3 +46,19 @@ static void free_userland_ctx(struct uk_thread *t)
 }
 
 UK_THREAD_INIT(init_userland_ctx, free_userland_ctx);
+
+#if CONFIG_LIBSYSCALL_SHIM_USERLANDTLS
+void uk_syscall_userland_tlsp_set(__uptr tlsp)
+{
+	struct userland_ctx *uctx = uctx_current();
+
+	uctx->tlsp = tlsp;
+}
+
+__uptr uk_syscall_userland_tlsp_get(void)
+{
+	struct userland_ctx *uctx = uctx_current();
+
+	return uctx->tlsp;
+}
+#endif /* CONFIG_LIBSYSCALL_SHIM_USERLANDTLS */

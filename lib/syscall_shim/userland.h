@@ -7,6 +7,9 @@
 
 struct userland_ctx {
 	struct uk_alloc *a;
+#if CONFIG_LIBSYSCALL_SHIM_USERLANDTLS
+	__uptr tlsp;
+#endif /* CONFIG_LIBSYSCALL_SHIM_USERLANDTLS */
 
 	__u8 *eregs;
 	__u8 _eregs[];

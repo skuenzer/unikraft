@@ -4,6 +4,7 @@
 #include <uk/assert.h>
 #include <uk/arch/ctx.h>
 #include <uk/plat/ctx.h>
+#include <uk/plat/tls.h>
 #include <uk/essentials.h>
 #include <arch/regmap_linuxabi.h>
 #include "userland.h"
@@ -15,6 +16,11 @@ static inline void kernel_context(void)
 
 	/* Save extended registers */
 	ukarch_eregs_store(uctx->eregs);
+
+#if CONFIG_LIBSYSCALL_SHIM_USERLANDTLS
+	/* set kernel TLS */
+	ukplat_tlsp_set(t->tlsp);
+#endif /* CONFIG_LIBSYSCALL_SHIM_USERLANDTLS */
 }
 
 static inline void userland_context(void)
@@ -23,6 +29,11 @@ static inline void userland_context(void)
 
 	/* Restore extended registers */
 	ukarch_eregs_load(uctx->eregs);
+
+#if CONFIG_LIBSYSCALL_SHIM_USERLANDTLS
+	/* set userland TLS */
+	ukplat_tlsp_set(uctx->tlsp);
+#endif /* CONFIG_LIBSYSCALL_SHIM_USERLANDTLS */
 }
 
 void ukplat_syscall_handler(struct __regs *r)
