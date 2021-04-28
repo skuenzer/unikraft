@@ -1,5 +1,3 @@
-
-#if CONFIG_LIBSYSCALL_SHIM_HANDLER
 #include <uk/plat/syscall.h>
 #include <uk/assert.h>
 #include <arch/regmap_linuxabi.h>
@@ -19,4 +17,3 @@ void ukplat_syscall_handler(struct __regs *r)
 	/* reset return address because it is becoming invalid on leave */
 	uk_syscall_caller_retp = 0x0;
 }
-#endif /* CONFIG_LIBSYSCALL_SHIM_HANDLER */
