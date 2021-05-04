@@ -403,9 +403,40 @@ const char *uk_syscall_name_p(long nr);
  */
 long (*uk_syscall_r_fn(long nr))(void);
 
+
 #if CONFIG_LIBSYSCALL_SHIM_USERLANDTLS
-void uk_syscall_userland_tlsp_set(__uptr tlsp);
-__uptr uk_syscall_userland_tlsp_get(void);
+#include <uk/thread.h>
+/**
+ * Sets the TLS pointer for the userland context for a given thread
+ * The binary system call handler will switch the TLS context to Unikraft
+ * when entering a system call and loads the TLS context for userland
+ * when the handler returns.
+ * NOTE: When
+ * Please note that threads need to be patched
+ *
+ * @param t
+ *  Target thread, this should not be self and/or a currently running thread
+ * @param tlsp
+ *  TLS address that should be set for userland context
+ */
+void uk_syscall_userland_tlsp_sett(struct uk_thread *t, __uptr tlsp);
+
+#define uk_syscall_userland_tlsp_set(tlsp)				\
+	uk_syscall_userland_tlsp_sett(uk_thread_current(), (tlsp))
+
+/**
+ * Returns the TLS pointer that was set for the userland context of a
+ * given thread
+ *
+ * @param t
+ *  Target thread
+ * @return
+ *  TLS address that was set for userland context
+ */
+__uptr uk_syscall_userland_tlsp_gett(struct uk_thread *t);
+
+#define uk_syscall_userland_tlsp_get(tlsp)				\
+	uk_syscall_userland_tlsp_gett(uk_thread_current(), (tlsp))
 #endif /* CONFIG_LIBSYSCALL_SHIM_USERLANDTLS */
 
 #endif /* CONFIG_LIBSYSCALL_SHIM */
