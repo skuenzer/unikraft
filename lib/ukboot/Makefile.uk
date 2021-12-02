@@ -1,4 +1,5 @@
 $(eval $(call addlib_s,libukboot,$(CONFIG_LIBUKBOOT)))
+$(eval $(call addlib_paramprefix,libukboot,boot))
 
 CINCLUDES-$(CONFIG_LIBUKBOOT)		+= -I$(LIBUKBOOT_BASE)/include
 CXXINCLUDES-$(CONFIG_LIBUKBOOT)	+= -I$(LIBUKBOOT_BASE)/include

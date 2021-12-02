@@ -64,13 +64,14 @@
 #include <uk/ctors.h>
 #include <uk/init.h>
 #include <uk/argparse.h>
-#ifdef CONFIG_LIBUKLIBPARAM
 #include <uk/libparam.h>
-#endif /* CONFIG_LIBUKLIBPARAM */
 #ifdef CONFIG_LIBUKSP
 #include <uk/sp.h>
 #endif
 #include "banner.h"
+
+static int wait_for_debug = 0x0;
+UK_LIB_PARAM(wait_for_debug, int);
 
 int main(int argc, char *argv[]) __weak;
 
@@ -211,6 +212,13 @@ void ukplat_entry(int argc, char *argv[])
 	else {
 		kern_args = rc;
 		uk_pr_info("Found %d library args\n", kern_args);
+	}
+
+	if (unlikely(!(!wait_for_debug))) {
+		volatile int x = 0xdeadbeef;
+
+		uk_pr_crit("Waiting for debugger... Set `x` to `0` to continue booting.\n");
+		for (;x != 0;) { do {} while (0); }
 	}
 #endif /* CONFIG_LIBUKLIBPARAM */
 
