@@ -631,28 +631,33 @@ static int pg_page_map(struct uk_pagetable *pt, __vaddr_t pt_vaddr,
 
 		/* This is a non-present PTE so we can map the new page here */
 		if (alloc_pmem) {
-			paddr = __PADDR_ANY;
+			/* HACK: Enable on-demand allocation for PAGE_PROT_NONE */
+			if (attr == PAGE_ATTR_PROT_NONE) {
+				paddr = 0;
+			} else {
+				paddr = __PADDR_ANY;
 
-			rc = pg_falloc(pt, &paddr, lvl);
-			if (rc) {
-				/* We could not allocate a contiguous,
-				 * self-aligned block of physical memory with
-				 * the requested size. If we should map largest
-				 * possible size, we reduce page size.
-				 */
-				if ((flags & PAGE_FLAG_FORCE_SIZE) ||
-				    (lvl == PAGE_LEVEL))
-					return rc;
+				rc = pg_falloc(pt, &paddr, lvl);
+				if (rc) {
+					/* We could not allocate a contiguous,
+					* self-aligned block of physical memory with
+					* the requested size. If we should map largest
+					* possible size, we reduce page size.
+					*/
+					if ((flags & PAGE_FLAG_FORCE_SIZE) ||
+					(lvl == PAGE_LEVEL))
+						return rc;
 
-				/* Find lower level that allows to map pages */
-				to_lvl = pg_largest_level(0, 0, __SZ_MAX,
-							  lvl - 1);
-				UK_ASSERT(to_lvl < lvl);
+					/* Find lower level that allows to map pages */
+					to_lvl = pg_largest_level(0, 0, __SZ_MAX,
+								lvl - 1);
+					UK_ASSERT(to_lvl < lvl);
 
-				/* Restrict following mappings */
-				max_lvl = to_lvl;
+					/* Restrict following mappings */
+					max_lvl = to_lvl;
 
-				continue;
+					continue;
+				}
 			}
 		}
 
@@ -1152,6 +1157,7 @@ static int pg_page_set_attr(struct uk_pagetable *pt, __vaddr_t pt_vaddr,
 	__vaddr_t pt_vaddr_cache[PT_LEVELS];
 	__pte_t pte, new_pte;
 	__sz page_size;
+	__paddr_t paddr;
 	unsigned int pte_idx_cache[PT_LEVELS];
 	unsigned int pte_idx;
 	int rc;
@@ -1238,12 +1244,33 @@ static int pg_page_set_attr(struct uk_pagetable *pt, __vaddr_t pt_vaddr,
 		 * len to change and the address we want to change is aligned
 		 * to the page size.
 		 */
-		new_pte = pgarch_pte_create(PT_Lx_PTE_PADDR(pte, lvl), new_attr,
-					    lvl, pte, lvl);
 
-		rc = ukarch_pte_write(pt_vaddr, lvl, pte_idx, new_pte);
-		if (unlikely(rc))
-			return rc;
+		/* HACK for PAGE_ATTR_PROT_NONE on-demand allocation */
+		paddr = PT_Lx_PTE_PADDR(pte, lvl);
+		if ((paddr == 0) && (new_attr != PAGE_ATTR_PROT_NONE)) {
+			/* clear mapping and then do a new mapping */
+			rc = ukarch_pte_write(pt_vaddr, lvl, pte_idx,
+					      PT_Lx_PTE_INVALID(lvl));
+			if (unlikely(rc))
+				return rc;
+
+			UK_ASSERT(vaddr != __VADDR_ANY);
+
+			rc = pg_page_map(pt, pt_vaddr, lvl, vaddr, __PADDR_ANY,
+					 PAGE_Lx_SIZE(lvl), new_attr, 0, pte,
+					 lvl);
+			if (unlikely(rc)) {
+				ukarch_pte_write(pt_vaddr, lvl, pte_idx, pte);
+				return rc;
+			}
+		} else {
+			new_pte = pgarch_pte_create(paddr, new_attr,
+						    lvl, pte, lvl);
+
+			rc = ukarch_pte_write(pt_vaddr, lvl, pte_idx, new_pte);
+			if (unlikely(rc))
+				return rc;
+		}
 
 		if (vaddr != __VADDR_ANY)
 			ukarch_tlb_flush_entry(vaddr);
