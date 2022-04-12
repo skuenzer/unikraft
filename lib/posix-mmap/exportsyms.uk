@@ -10,3 +10,5 @@ uk_syscall_r_mprotect
 msync
 uk_syscall_e_msync
 uk_syscall_r_msync
+
+mmap_total_allocated

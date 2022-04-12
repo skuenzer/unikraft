@@ -51,6 +51,8 @@
 #define MMAP_AREA_END		(1UL << 40) /* 1 TB */
 #define MMAP_AREA_SIZE		(MMAP_AREA_END - MMAP_AREA_START)
 
+size_t mmap_total_allocated;
+
 /*
  * XXX
  * This does for now a linear search, starting from |start|, looking for a
@@ -229,6 +231,7 @@ UK_SYSCALL_DEFINE(void*, mmap, void*, addr, size_t, len, int, prot, int, flags,
 	}
 
 	uk_pr_debug("mmap: %lx %lx -> %lx\n", (__vaddr_t)addr, len, vaddr);
+	mmap_total_allocated += len;
 
 	if (prot == PROT_NONE) {
 		/* TODO: We map pages with no access to an invalid pfn.
@@ -333,9 +336,7 @@ UK_SYSCALL_R_DEFINE(int, munmap, void*, addr, size_t, len)
 
 	uk_pr_debug("munmap: %lx %lx\n", (__vaddr_t)addr, len);
 
-	if ((__vaddr_t)addr == 0x8000eca000) {
-		pages = pages;
-	}
+	mmap_total_allocated -= len;
 
 	return ukplat_page_unmap(ukplat_pt_get_active(), (__vaddr_t)addr,
 				 pages, 0);
