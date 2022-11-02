@@ -390,6 +390,10 @@ static void _init_paging(struct multiboot_info *mi)
 	 * (i.e., 4K pages). Also reserve some space for the boot stack.
 	 */
 	free_memory = kernel_pt.fa->free_memory;
+#ifdef CONFIG_LIBPOSIX_MMAP
+	/* leave half the memory for mmap */
+	free_memory = PAGE_ALIGN_UP(free_memory / 2);
+#endif /* CONFIG_LIBPOSIX_MMAP */
 	frames = free_memory >> PAGE_SHIFT;
 
 	res_memory = __STACK_SIZE;			/* boot stack */
