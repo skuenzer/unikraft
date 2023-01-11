@@ -843,7 +843,7 @@ COMMON_CONFIG_ENV = \
 PHONY += scriptconfig scriptsyncconfig iscriptconfig kmenuconfig guiconfig \
 		 dumpvarsconfig
 
-PYTHONCMD ?= python
+PYTHONCMD ?= python3
 kpython := PYTHONPATH=$(UK_CONFIGLIB):$$PYTHONPATH $(PYTHONCMD)
 
 ifneq ($(filter scriptconfig,$(MAKECMDGOALS)),)
