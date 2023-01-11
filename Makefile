@@ -880,6 +880,9 @@ dumpvarsconfig:$(KCONFIG_DIR)/fixdep
 	$(Q)$(COMMON_CONFIG_ENV) $(kpython) $(CONFIGLIB)/examples/dumpvars.py $(CONFIG_CONFIG_IN)
 	@$(SCRIPTS_DIR)/configupdate $(UK_CONFIG) $(UK_CONFIG_OUT)
 
+ifeq ($(BUILD_OSENV),Darwin)
+menuconfig: kmenuconfig
+else
 xconfig: $(KCONFIG_DIR)/qconf
 	@$(COMMON_CONFIG_ENV) $< $(CONFIG_CONFIG_IN)
 	@$(COMMON_CONFIG_ENV) $(SCRIPTS_DIR)/configupdate $(UK_CONFIG) $(UK_CONFIG_OUT)
@@ -952,7 +955,7 @@ savedefconfig: $(KCONFIG_DIR)/conf
 # Regenerate $(KCONFIG_AUTOHEADER) whenever $(UK_CONFIG) changed
 $(KCONFIG_AUTOHEADER): $(UK_CONFIG) $(KCONFIG_DIR)/conf
 	@$(COMMON_CONFIG_ENV) $(KCONFIG_DIR)/conf --syncconfig $(CONFIG_CONFIG_IN)
-
+endif
 
 # Misc stuff
 # ---------------------------------------------------------------------------
@@ -1066,6 +1069,11 @@ help:
 	@echo '  fetch                  - fetch, extract, and patch remote code'
 	@echo ''
 	@echo 'Configuration:'
+ifeq ($(BUILD_OSENV),Darwin)
+	@echo '* menuconfig             - interactive configurator (alias to kmenuconfig)'
+	@echo '                           (default target when no config exists)'
+	@echo '  kmenuconfig            - interactive python based configurator'
+else
 	@echo '* menuconfig             - interactive curses-based configurator'
 	@echo '                           (default target when no config exists)'
 	@echo '  kmenuconfig            - interactive python based configurator'
@@ -1083,6 +1091,7 @@ help:
 	@echo '  savedefconfig          - Save current config to UK_DEFCONFIG (minimal config)'
 	@echo '  allyesconfig           - New config where all options are accepted with yes'
 	@echo '  allnoconfig            - New config where all options are answered with no'
+endif
 	@echo ''
 	@echo 'Command-line variables:'
 	@echo '  V=0|1|2                - 0 => quiet build (default), 1 => verbose build,'
