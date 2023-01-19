@@ -881,7 +881,13 @@ dumpvarsconfig:$(KCONFIG_DIR)/fixdep
 	@$(SCRIPTS_DIR)/configupdate $(UK_CONFIG) $(UK_CONFIG_OUT)
 
 ifeq ($(BUILD_OSENV),Darwin)
+.PHONY: menuconfig
+
 menuconfig: kmenuconfig
+
+oldconfig: @$(COMMON_CONFIG_ENV) $(kpython) $(CONFIGLIB)/oldconfig.py \
+		$(CONFIG_CONFIG_IN)
+	@$(COMMON_CONFIG_ENV) $(SCRIPTS_DIR)/configupdate $(UK_CONFIG) $(UK_CONFIG_OUT)
 else
 xconfig: $(KCONFIG_DIR)/qconf
 	@$(COMMON_CONFIG_ENV) $< $(CONFIG_CONFIG_IN)
@@ -1073,6 +1079,7 @@ ifeq ($(BUILD_OSENV),Darwin)
 	@echo '* menuconfig             - interactive configurator (alias to kmenuconfig)'
 	@echo '                           (default target when no config exists)'
 	@echo '  kmenuconfig            - interactive python based configurator'
+	@echo '  oldconfig              - resolve any unresolved symbols in .config'
 else
 	@echo '* menuconfig             - interactive curses-based configurator'
 	@echo '                           (default target when no config exists)'
