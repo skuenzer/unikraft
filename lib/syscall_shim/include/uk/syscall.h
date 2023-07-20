@@ -462,6 +462,14 @@ long uk_syscall6(long nr, long arg1, long arg2, long arg3,
 /* Raw system call, returns negative codes on errors */
 long uk_syscall_r(long nr, ...);
 long uk_vsyscall_r(long nr, va_list arg);
+long uk_syscall0_r(long nr);
+long uk_syscall1_r(long nr, long arg1);
+long uk_syscall2_r(long nr, long arg1, long arg2);
+long uk_syscall3_r(long nr, long arg1, long arg2, long arg3);
+long uk_syscall4_r(long nr, long arg1, long arg2, long arg3,
+		   long arg4);
+long uk_syscall5_r(long nr, long arg1, long arg2, long arg3,
+		   long arg4, long arg5);
 long uk_syscall6_r(long nr, long arg1, long arg2, long arg3,
 		   long arg4, long arg5, long arg6);
 
