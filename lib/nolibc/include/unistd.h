@@ -45,6 +45,7 @@ extern "C" {
 #define __NEED_ssize_t
 #define __NEED_off_t
 #define __NEED_useconds_t
+#define __NEED_pid_t
 
 #include <nolibc-internal/shareddefs.h>
 
@@ -83,6 +84,8 @@ int execvpe(const char *file, char *const argv[],
 		char *const envp[]);
 int execve(const char *filename, char *const argv[],
 		char *const envp[]);
+pid_t getpid (void);
+pid_t getppid (void);
 #endif
 
 #if CONFIG_LIBVFSCORE
