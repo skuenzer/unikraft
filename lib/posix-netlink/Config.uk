@@ -1,0 +1,17 @@
+menuconfig LIBPOSIX_NETLINK
+	bool "posix-netlink: Abstraction for netlink protocols"
+	default n
+	select LIBUKDEBUG
+	select LIBPOSIX_SOCKET
+	select LIBUKMPI
+	select LIBUKMPI_MBOX
+	help
+		This micro library enables micro libraries to register a netlink
+		protocol, like NETLINK_ROUTE. posix-netlink takes care of the
+		protocol demultiplexing and registers the netlink protocol family
+		(AF_NETLINK) to posix-socket.
+
+if LIBPOSIX_NETLINK
+	config LIBPOSIX_NETLINK_DEBUG
+	bool "Enable debug messages"
+endif
