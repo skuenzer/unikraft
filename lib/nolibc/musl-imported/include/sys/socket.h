@@ -52,8 +52,8 @@ struct mmsghdr {
 
 struct timespec;
 
-int sendmmsg (int, struct mmsghdr *, unsigned int, unsigned int);
-int recvmmsg (int, struct mmsghdr *, unsigned int, unsigned int, struct timespec *);
+int sendmmsg (int, struct mmsghdr *, unsigned int, int);
+int recvmmsg (int, struct mmsghdr *, unsigned int, int, struct timespec *);
 #endif
 
 struct linger {

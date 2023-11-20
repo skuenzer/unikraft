@@ -855,6 +855,63 @@ out:
 	return ret;
 }
 
+UK_TRACEPOINT(trace_posix_socket_sendmmsg, "%d %p %u %d", int,
+	      const struct mmsghdr *, unsigned int, int);
+UK_TRACEPOINT(trace_posix_socket_sendmmsg_ret, "%d", int);
+UK_TRACEPOINT(trace_posix_socket_sendmmsg_err, "%d", int);
+
+/*
+ * Compatinbility wrapper around SYS_sendmsg
+ * TODO: Fall-back to this wrapper only if drivers do not support own sendmmsg
+ */
+UK_SYSCALL_R_DEFINE(int, sendmmsg, int, sock, struct mmsghdr*, msgvec,
+		    unsigned int, vlen, int, flags)
+{
+	unsigned int i;
+	ssize_t sent;
+	int ret;
+	trace_posix_socket_sendmmsg(sock, msgvec, vlen, flags);
+
+	if (unlikely(!msgvec || !vlen))
+		return -EFAULT;
+
+	struct uk_ofile *of = socketfd_get(sock);
+	if (unlikely(PTRISERR(of))) {
+		ret = PTR2ERR(of);
+		goto out;
+	}
+
+	unsigned mode = of->mode;
+
+	for (i = 0; i < vlen; ++i) {
+		for (;;) {
+			uk_file_rlock(of->file);
+			sent = posix_socket_sendmsg(of->file,
+						    &msgvec[i].msg_hdr, flags);
+			uk_file_runlock(of->file);
+			if (!_SHOULD_BLOCK(mode) || !_ERR_BLOCK(sent))
+				break;
+			(void)uk_file_poll(of->file, UKFD_POLLOUT);
+		}
+		if (sent < 0) {
+			ret = (int) sent;
+			goto out_ret_fd;
+		}
+		msgvec[i].msg_len = sent;
+	}
+	ret = (int) i;
+
+out_ret_fd:
+	uk_fdtab_ret(of);
+
+out:
+	if (ret < 0 && ret != -EAGAIN)
+		trace_posix_socket_sendmmsg_err(ret);
+	else
+		trace_posix_socket_sendmmsg_ret(ret);
+	return ret;
+}
+
 UK_TRACEPOINT(trace_posix_socket_sendto, "%d %p %d %d %p %d",
 	      int, const void *, size_t, int,
 	      const struct sockaddr *, socklen_t);

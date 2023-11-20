@@ -46,6 +46,9 @@ send
 sendmsg
 uk_syscall_e_sendmsg
 uk_syscall_r_sendmsg
+sendmmsg
+uk_syscall_e_sendmmsg
+uk_syscall_r_sendmmsg
 sendto
 uk_syscall_e_sendto
 uk_syscall_r_sendto
