@@ -143,7 +143,7 @@ static int vfscore_extract_volume(const struct vfscore_volume *vv)
 
 #if CONFIG_LIBVFSCORE_FSTAB
 /* Handle `mkmp` Unikraft Mount Option */
-static int vfscore_volume_process_ukopts_do_mkmp(char *path)
+static int vfscore_ukopt_mkmp(char *path)
 {
 	char *pos, *prev_pos;
 	int rc;
@@ -206,15 +206,16 @@ static int vfscore_volume_process_ukopts_do_mkmp(char *path)
  *		exists. If it does not exist in the current vfs, the directory
  *		structure is created.
  */
-static int vfscore_volume_process_ukopts(struct vfscore_volume *vv)
+static int vfscore_volume_process_ukopts(const struct vfscore_volume *vv)
 {
-	char *o_curr, *o_next;
+	const char *o_curr;
+	char *o_next;
 	int rc;
 
 	UK_ASSERT(vv);
 	UK_ASSERT(vv->path);
 
-	o_curr = vv->ukopts;
+	o_curr = (const char *) vv->ukopts;
 	while (o_curr) {
 		o_next = strchr(o_curr, LIBVFSCORE_FSTAB_UKOPTS_ARGS_SEP);
 		if (o_next) {
@@ -224,10 +225,10 @@ static int vfscore_volume_process_ukopts(struct vfscore_volume *vv)
 
 		/* First check is so we do not run `mkmp` on `/` */
 		if (!strcmp(o_curr, "mkmp") && vv->path[1] != '\0') {
-			rc = vfscore_volume_process_ukopts_do_mkmp(vv->path);
+			rc = vfscore_ukopt_mkmp(vv->path);
 			if (unlikely(rc)) {
-				uk_pr_err("Failed to process ukopt (mkmp): "
-					  "%d\n", rc);
+				uk_pr_err("Failed to process ukopt \"mkmp\": %d\n",
+					  rc);
 				return rc;
 			}
 		}
